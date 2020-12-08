@@ -103,5 +103,6 @@ dist
 # TernJS port file
 .tern-port
 
-# Ignore compiled JS files
+# Ignore compiled TS files
 *.js
+*.d.ts

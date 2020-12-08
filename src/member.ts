@@ -1,17 +1,22 @@
 import { randomBytes } from "crypto";
 import { EventEmitter } from "events";
 
-type ResponseType = "accept" | "deny" | "cancel" | "conflict";
-type ResponseState = "pending" | "ready" | "cancelled" | "failed" | "finished";
-type Operation = "add" | "remove" | "merge";
-type RequestIdentifier = "request";
-type ResponseIdentifier = "response";
-type FeedItem = Request | Response;
+export type ResponseType = "accept" | "deny" | "cancel" | "conflict";
+export type ResponseState =
+  | "pending"
+  | "ready"
+  | "cancelled"
+  | "failed"
+  | "finished";
+export type Operation = "add" | "remove" | "merge";
+export type RequestIdentifier = "request";
+export type ResponseIdentifier = "response";
+export type FeedItem = Request | Response;
 
-type ID = string;
+export type ID = string;
 
-const REQUEST_TYPE = "request" as RequestIdentifier;
-const RESPONSE_TYPE = "response" as ResponseIdentifier;
+export const REQUEST_TYPE = "request" as RequestIdentifier;
+export const RESPONSE_TYPE = "response" as ResponseIdentifier;
 
 interface RawRequest {
   // Used to differentiate between req/res
@@ -24,19 +29,19 @@ interface RawRequest {
   operation: Operation;
 }
 
-interface WhoRequest extends RawRequest{
+export interface WhoRequest extends RawRequest {
   // Who to add or remove
   who: ID;
 }
 
-interface MergeRequest extends RawRequest {
+export interface MergeRequest extends RawRequest {
   // Which requests have been merged for this one
   toMerge: Request[];
 }
 
-type Request = WhoRequest | MergeRequest
+export type Request = WhoRequest | MergeRequest;
 
-interface Response {
+export interface Response {
   // Used to differentiate between req/res
   type: ResponseIdentifier;
   // ID of the request
@@ -47,7 +52,7 @@ interface Response {
   response: ResponseType;
 }
 
-class RequestState {
+export class RequestState {
   req: Request;
   signatures: {
     [id in ID]: Response;
@@ -60,12 +65,15 @@ class RequestState {
     this.finished = false;
   }
 
-  getState(neededSignatures: number): ResponseState {
+  getState(
+    neededSignatures: number,
+    maxDenied: number = neededSignatures
+  ): ResponseState {
     if (this.finished) return "finished";
     if (this.isCancelled()) return "cancelled";
     if (this.isConflicted()) return "failed";
     if (this.numberAccepted() >= neededSignatures) return "ready";
-    if (this.numberDenied() >= neededSignatures) return "failed";
+    if (this.numberDenied() >= maxDenied) return "failed";
 
     return "pending";
   }
@@ -105,7 +113,7 @@ class RequestState {
   }
 
   isCancelled(): boolean {
-    return this.signatures[this.from].response === ("cancel" as ResponseType);
+    return this.signatures[this.from]?.response === ("cancel" as ResponseType);
   }
 
   finish() {
@@ -117,14 +125,14 @@ function allowAll(request: Request): boolean {
   return true;
 }
 
-interface ShouldAcceptCB {
+export interface ShouldAcceptCB {
   (request: Request): boolean;
 }
 
-interface MemberConstructorOptions {
+export interface MemberConstructorOptions {
   id?: ID;
   initiator?: ID;
-  shouldAccept: ShouldAcceptCB;
+  shouldAccept?: ShouldAcceptCB;
 }
 
 export class Member extends EventEmitter {
@@ -176,9 +184,9 @@ export class Member extends EventEmitter {
     }
   }
 
-  processFeeds() {
+  processFeeds(): boolean {
     let hasProcessed = false;
-    let needsReprocess = false;
+    let hasResponded = false;
     for (const id of Object.keys(this.knownFeeds)) {
       const index = this.getMemberIndexFor(id);
       const feed = this.getFeedFor(id);
@@ -190,32 +198,38 @@ export class Member extends EventEmitter {
       if (isRequest(item)) {
         this.trackRequest(item);
 
-        // TODO: Detect Forks
+        // TODO: Detect detect concurrent requests and merge
         if (this.isMember()) {
+          hasResponded = true;
           const shouldAccept = this.shouldAccept(item);
           if (shouldAccept) this.acceptRequest(item);
           else this.denyRequest(item);
         }
+        this.incrementMemberIndexFor(id);
       } else if (isResponse(item)) {
         if (this.hasRequest(item.id)) {
           const req = this.getRequest(item.id);
           req.addResponse(id, item);
           let neededSignatures = this.knownMembers.length;
           if (req.operation === "remove") neededSignatures--;
-          const state = req.getState(neededSignatures);
+          const maxDenied = this.knownMembers.length - neededSignatures;
+          const state = req.getState(neededSignatures, maxDenied);
           if (req.getState(neededSignatures) === "ready") {
-            if (this.isMember()) {
-              if (req.operation === "add") {
-                if(isWho(req.req)) {
-                this.knownMembers.push(req.req.who);
-                }
-              } else if (req.operation === "remove") {
-                if(isWho(req.req))
+            if (req.operation === "add") {
+              if (isWho(req.req)) {
+                const who = req.req.who;
+                this.knownMembers.push(who);
+              }
+            } else if (req.operation === "remove") {
+              if (isWho(req.req)) {
+                const who = req.req.who;
                 this.knownMembers = this.knownMembers.filter(
-                  (id) => id !== req.req.who
+                  (id) => id !== who
                 );
               }
-              req.finish();
+            }
+            req.finish();
+            if (this.isMember()) {
               this.emit("block", req);
             }
           }
@@ -223,10 +237,16 @@ export class Member extends EventEmitter {
         } else {
           continue;
         }
+      } else {
+        console.warn("Got invalid item", item);
+        this.incrementMemberIndexFor(id);
       }
     }
 
-    if (hasProcessed) this.processFeeds();
+    if (hasProcessed) {
+      const otherRun = this.processFeeds()
+      return hasProcessed || otherRun;
+    } else return hasProcessed;
   }
 
   private updateFeedFor(id: ID, feed: FeedItem[]) {
@@ -317,20 +337,20 @@ export class Member extends EventEmitter {
   }
 }
 
-function isRequest(item: FeedItem): item is Request {
+export function isRequest(item: FeedItem): item is Request {
   return item.type === REQUEST_TYPE;
 }
 
-function isResponse(item: FeedItem): item is Response {
+export function isResponse(item: FeedItem): item is Response {
   return item.type === RESPONSE_TYPE;
 }
 
 function isMerge(item: Request): item is MergeRequest {
-  return item.toMerge !== undefined
+  return (item as MergeRequest).toMerge !== undefined;
 }
 
-function isWho(item: Request) : item is WhoRequest {
-  return item.who !== undefined
+function isWho(item: Request): item is WhoRequest {
+  return (item as WhoRequest).who !== undefined;
 }
 
 function makeID(): ID {
