@@ -106,3 +106,4 @@ dist
 # Ignore compiled TS files
 *.js
 *.d.ts
+*.js.map
