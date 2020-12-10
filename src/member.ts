@@ -113,7 +113,7 @@ export class RequestState {
   }
 
   isCancelled(): boolean {
-    return this.signatures[this.from]?.response === ("cancel" as ResponseType);
+    return this.signatures[this.from]?.response === "cancel";
   }
 
   finish() {
@@ -214,14 +214,14 @@ export class Member extends EventEmitter {
           if (req.operation === "remove") neededSignatures--;
           const maxDenied = this.knownMembers.length - neededSignatures;
           const state = req.getState(neededSignatures, maxDenied);
-          if (req.getState(neededSignatures) === "ready") {
+          if (state === "ready") {
             if (req.operation === "add") {
-              if (isWho(req.req)) {
+              if (isWhoRequest(req.req)) {
                 const who = req.req.who;
                 this.knownMembers.push(who);
               }
             } else if (req.operation === "remove") {
-              if (isWho(req.req)) {
+              if (isWhoRequest(req.req)) {
                 const who = req.req.who;
                 this.knownMembers = this.knownMembers.filter(
                   (id) => id !== who
@@ -245,8 +245,8 @@ export class Member extends EventEmitter {
 
     if (hasProcessed) {
       const otherRun = this.processFeeds()
-      return hasProcessed || otherRun;
-    } else return hasProcessed;
+      return hasResponded || otherRun;
+    } else return hasResponded;
   }
 
   private updateFeedFor(id: ID, feed: FeedItem[]) {
@@ -345,11 +345,11 @@ export function isResponse(item: FeedItem): item is Response {
   return item.type === RESPONSE_TYPE;
 }
 
-function isMerge(item: Request): item is MergeRequest {
+function isMergeRequest(item: Request): item is MergeRequest {
   return (item as MergeRequest).toMerge !== undefined;
 }
 
-function isWho(item: Request): item is WhoRequest {
+function isWhoRequest(item: Request): item is WhoRequest {
   return (item as WhoRequest).who !== undefined;
 }
 
