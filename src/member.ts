@@ -58,24 +58,33 @@ export class RequestState {
     [id in ID]: Response;
   };
   finished: boolean;
+  lastState: ResponseState;
 
   constructor(req: Request) {
     this.req = req;
     this.signatures = {};
     this.finished = false;
+    this.lastState = "pending";
   }
 
-  getState(
+  isSignedBy(id: ID): boolean {
+    return !!this.signatures[id];
+  }
+
+  calculateState(
     neededSignatures: number,
     maxDenied: number = neededSignatures
   ): ResponseState {
-    if (this.finished) return "finished";
-    if (this.isCancelled()) return "cancelled";
-    if (this.isConflicted()) return "failed";
-    if (this.numberAccepted() >= neededSignatures) return "ready";
-    if (this.numberDenied() >= maxDenied) return "failed";
+    let state: ResponseState = "pending";
+    if (this.finished) state = "finished";
+    if (this.isCancelled()) state = "cancelled";
+    if (this.isConflicted()) state = "failed";
+    if (this.numberAccepted() >= neededSignatures) state = "ready";
+    if (this.numberDenied() > maxDenied) state = "failed";
 
-    return "pending";
+    this.lastState = state;
+
+    return state;
   }
 
   addResponse(author: ID, response: Response) {
@@ -182,38 +191,36 @@ export class Member extends EventEmitter {
         this.updateFeedFor(id, feed);
       }
     }
+
+    this.processFeeds()
   }
 
   processFeeds(): boolean {
     let hasProcessed = false;
     let hasResponded = false;
-    for (const id of Object.keys(this.knownFeeds)) {
+    for (const id of this.knownMembers) {
       const index = this.getMemberIndexFor(id);
       const feed = this.getFeedFor(id);
       const item = feed[index];
-
       if (!item) continue;
       hasProcessed = true;
 
       if (isRequest(item)) {
         this.trackRequest(item);
 
-        // TODO: Detect detect concurrent requests and merge
-        if (this.isMember()) {
-          hasResponded = true;
-          const shouldAccept = this.shouldAccept(item);
-          if (shouldAccept) this.acceptRequest(item);
-          else this.denyRequest(item);
-        }
         this.incrementMemberIndexFor(id);
       } else if (isResponse(item)) {
         if (this.hasRequest(item.id)) {
           const req = this.getRequest(item.id);
           req.addResponse(id, item);
+
           let neededSignatures = this.knownMembers.length;
           if (req.operation === "remove") neededSignatures--;
+
           const maxDenied = this.knownMembers.length - neededSignatures;
-          const state = req.getState(neededSignatures, maxDenied);
+
+          const state = req.calculateState(neededSignatures, maxDenied);
+
           if (state === "ready") {
             if (req.operation === "add") {
               if (isWhoRequest(req.req)) {
@@ -244,7 +251,7 @@ export class Member extends EventEmitter {
     }
 
     if (hasProcessed) {
-      const otherRun = this.processFeeds()
+      const otherRun = this.processFeeds();
       return hasResponded || otherRun;
     } else return hasResponded;
   }
@@ -307,6 +314,9 @@ export class Member extends EventEmitter {
 
     this.ownFeed.push(req);
 
+    // Automatically accept requests you created
+    this.acceptRequest(req);
+
     return req;
   }
 
@@ -330,6 +340,32 @@ export class Member extends EventEmitter {
 
   denyRequest(request: Request): Response {
     return this.makeResponse(request, "deny");
+  }
+
+  getPendingRequests(): RequestState[] {
+    const pending = [];
+    // Down the line we'll want to put finished requests somewhere else
+    for (let id of Object.keys(this.requests)) {
+      const request = this.requests[id];
+      const state = request.lastState;
+      if (state !== "pending") continue;
+      if (request.isSignedBy(this.id)) continue;
+      pending.push(request);
+    }
+
+    return pending;
+  }
+
+  acceptPending(): number {
+    let accepted = 0;
+    for (let requestState of this.getPendingRequests()) {
+      this.acceptRequest(requestState.req);
+      accepted++;
+    }
+
+    this.processFeeds();
+
+    return accepted;
   }
 
   isMember() {

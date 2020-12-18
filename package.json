@@ -1,6 +1,7 @@
 {
   "name": "permissions-system-sim",
   "version": "1.0.0",
+  "private": "true",
   "description": "A payground for simulationg flows in the consento permissions system",
   "main": "index.js",
   "scripts": {
