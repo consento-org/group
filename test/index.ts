@@ -1,11 +1,11 @@
-import tape from "fresh-tape";
+import test from "fresh-tape";
 
 import { Member } from "../src/member";
 
 const EXAMPLE_ID = "example";
 const EXAMPLE_ID_2 = "example2";
 
-tape("Able to initialize a member", (t) => {
+test("Able to initialize a member", (t) => {
   const member = new Member();
 
   t.pass("Able to process feeds with zero data");
@@ -13,7 +13,7 @@ tape("Able to initialize a member", (t) => {
   t.end();
 });
 
-tape("Able to add a member by ID", (t) => {
+test("Able to add a member by ID", (t) => {
   const member = new Member();
 
   const req = member.requestAdd(EXAMPLE_ID);
@@ -36,7 +36,7 @@ tape("Able to add a member by ID", (t) => {
   t.end();
 });
 
-tape("Able to add a member by ID and sync", (t) => {
+test("Able to add a member by ID and sync", (t) => {
   const member = new Member();
   const other = new Member({ initiator: member.id });
 
@@ -68,7 +68,7 @@ tape("Able to add a member by ID and sync", (t) => {
   t.end();
 });
 
-tape("Process request by syncing one peer at a time", (t) => {
+test("Process request by syncing one peer at a time", (t) => {
   const members = initializeMembers(5);
 
   let previous = members[0];
@@ -88,7 +88,7 @@ tape("Process request by syncing one peer at a time", (t) => {
   t.end();
 });
 
-tape("Two members do an add at once", (t) => {
+test("Two members do an add at once", (t) => {
 	const members = initializeMembers(5)
 
 	const [a,b,c,d,e] = members
@@ -162,6 +162,65 @@ tape("Two members do an add at once", (t) => {
   t.ok(wasFinallyAddedA, 'F was added via A')
 
   t.end()
+})
+
+test('Happy path of adding several members together', (t) => {
+  const a = new Member({id: 'a'})
+  const b = new Member({id: 'b', initiator: 'a'})
+  const c = new Member({id: 'c', initiator: 'a'})
+  const d = new Member({id: 'd', initiator: 'a'})
+  const e = new Member({id: 'e', initiator: 'a'})
+
+  const currentMembers = [a]
+  const allMembers = [a,b,c,d,e]
+
+  authorizeMember(b)
+  authorizeMember(c)
+  authorizeMember(d)
+  authorizeMember(e)
+
+  const f = new Member({id: 'f', initiator: 'a'})
+
+  sync(f, c)
+
+  t.deepEqual(f.knownMembers, c.knownMembers, 'Outside member resovled to same ID')
+
+  t.end()
+
+  function authorizeMember(member: Member) {
+		const initiator = currentMembers[currentMembers.length -1]
+		const others = currentMembers.slice(0, -1)
+
+		initiator.requestAdd(member.id)
+
+		let previous = initiator
+
+		for(let next of others) {
+			sync(previous, next)
+
+			const pending = next.getPendingRequests()
+
+			t.equal(pending.length, 1, `${next.id} sees pending request ${member.id}`)
+
+			const accepted = next.acceptPending()
+
+			t.equal(accepted, 1, `${next.id} acepted pending request ${member.id}`)
+
+			previous = next
+		}
+
+		const exists  = previous.knownMembers.includes(member.id)
+
+		t.ok(exists, 'Member got added')
+
+		currentMembers.push(member)
+
+		for(let next of currentMembers) {
+       sync(next, previous)
+
+       t.deepEquals(next.knownMembers, previous.knownMembers, `${next.id} resolved expected members`)
+		}
+  }
 })
 
 function sync(member1: Member, member2: Member) {
