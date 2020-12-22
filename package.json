@@ -5,11 +5,19 @@
   "description": "A payground for simulationg flows in the consento permissions system",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "lint": "prettier --write **.ts && tsc --noEmit",
-    "build": "tsc",
-    "test": "npm run build && node ./test"
+    "test": "ts-node ./test",
+    "lint": "eslint --ext .js,.ts . ",
+    "build": "tsc"
   },
+  "eslintConfig": {
+    "extends": "standard-with-typescript",
+    "parserOptions": {
+      "project": "./tsconfig.json"
+    }
+  },
+  "eslintIgnore": [
+    "node_modules/*"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/consento-org/permissions-system-sim.git"
@@ -24,8 +32,15 @@
     "@types/node": "^14.14.10"
   },
   "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^4.8.1",
+    "eslint": "^7.13.0",
+    "eslint-config-standard-with-typescript": "^19.0.1",
+    "eslint-plugin-import": "^2.22.1",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-promise": "^4.2.1",
+    "eslint-plugin-standard": "^4.1.0",
     "fresh-tape": "^5.0.4",
-    "prettier": "^2.2.1",
+    "ts-node": "^9.1.1",
     "typescript": "^4.1.2"
   }
 }
