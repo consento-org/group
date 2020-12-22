@@ -217,7 +217,15 @@ export class Member extends EventEmitter {
           req.addResponse(id, item)
 
           let neededSignatures = this.knownMembers.length
-          if (req.operation === 'remove') neededSignatures--
+          if (
+            // Remove operations are okay with having one less
+            req.operation === 'remove' &&
+            // Two members can form a majority, to remove one of two members
+            // unilaterally is impossible
+            this.knownMembers.length > 2
+          ) {
+            neededSignatures--
+          }
 
           const maxDenied = this.knownMembers.length - neededSignatures
 
@@ -354,6 +362,7 @@ export class Member extends EventEmitter {
       const state = request.lastState
       if (state !== 'pending') continue
       if (request.isSignedBy(this.id)) continue
+      if (!this.knownMembers.includes(request.from)) continue
       pending.push(request)
     }
 

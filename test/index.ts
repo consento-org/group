@@ -88,6 +88,25 @@ test('Process request by syncing one peer at a time', (t) => {
   t.end()
 })
 
+test('Only two members remove each other', t => {
+  const [a, b] = initializeMembers(2, { knowEachOther: true })
+
+  a.requestRemove(b.id)
+  b.requestRemove(a.id)
+
+  sync(a, b)
+
+  t.equals(b.acceptPending().length, 1, 'B required to remove B')
+
+  t.equals(b.knownMembers.length, 1, 'B removed on B')
+
+  sync(b, a)
+  t.equals(a.knownMembers.length, 1, 'B removed on A')
+
+  t.equals(a.getPendingRequests().length, 0, 'No request should be pending anymore on A as it was removed on B')
+  t.end()
+})
+
 test('Two members do an add at once', (t) => {
   const [a, b, c, d, e] = initializeMembers(5, { knowEachOther: true })
 
