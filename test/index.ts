@@ -165,7 +165,7 @@ test('Two members do an add at once', (t) => {
 })
 
 test('Happy path of adding several members together', (t) => {
-  const a = new Member({ id: 'a' })
+  const a = new Member({ id: 'a'})
   const b = new Member({ id: 'b', initiator: 'a' })
   const c = new Member({ id: 'c', initiator: 'a' })
   const d = new Member({ id: 'd', initiator: 'a' })
@@ -194,7 +194,11 @@ test('Happy path of adding several members together', (t) => {
 
     let previous = initiator
 
-    for (const next of others) {
+    if(!others.length) {
+      const pending = initiator.getPendingRequests()
+
+      t.equal(pending.length, 0, `${initiator.id} doesn't see pending request ${member.id}`)
+    } else for (const next of others) {
       sync(previous, next)
 
       const pending = next.getPendingRequests()

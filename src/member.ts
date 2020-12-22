@@ -319,6 +319,8 @@ export class Member extends EventEmitter {
     // Automatically accept requests you created
     this.acceptRequest(req)
 
+    this.processFeeds()
+
     return req
   }
 
