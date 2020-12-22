@@ -69,7 +69,7 @@ test('Able to add a member by ID and sync', (t) => {
 })
 
 test('Process request by syncing one peer at a time', (t) => {
-  const members = initializeMembers(5)
+  const members = initializeMembers(5, { knowEachOther: true })
 
   let previous = members[0]
   previous.requestAdd(EXAMPLE_ID)
@@ -89,9 +89,7 @@ test('Process request by syncing one peer at a time', (t) => {
 })
 
 test('Two members do an add at once', (t) => {
-  const members = initializeMembers(5)
-
-  const [a, b, c, d, e] = members
+  const [a, b, c, d, e] = initializeMembers(5, { knowEachOther: true })
 
   const f = new Member()
   const g = new Member()
@@ -165,11 +163,7 @@ test('Two members do an add at once', (t) => {
 })
 
 test('Happy path of adding several members together', (t) => {
-  const a = new Member({ id: 'a' })
-  const b = new Member({ id: 'b', initiator: 'a' })
-  const c = new Member({ id: 'c', initiator: 'a' })
-  const d = new Member({ id: 'd', initiator: 'a' })
-  const e = new Member({ id: 'e', initiator: 'a' })
+  const [a, b, c, d, e] = initializeMembers(5, { knowEachOther: false })
 
   const currentMembers = [a]
 
@@ -186,9 +180,9 @@ test('Happy path of adding several members together', (t) => {
 
   t.end()
 
-  function authorizeMember (member: Member): void {
-    const initiator = currentMembers[currentMembers.length - 1]
-    const others = currentMembers.slice(0, -1)
+  function authorizeMember (member: Member, initiator?: Member): void {
+    initiator = initiator ?? currentMembers[currentMembers.length - 1]
+    const others = currentMembers.filter(other => other !== initiator)
 
     initiator.requestAdd(member.id)
 
@@ -200,6 +194,7 @@ test('Happy path of adding several members together', (t) => {
       t.equal(pending.length, 0, `${initiator.id} doesn't see pending request ${member.id}`)
     } else {
       for (const next of others) {
+        t.pass(`sync ${previous.id} -> ${next.id}`)
         sync(previous, next)
 
         const pending = next.getPendingRequests()
@@ -208,7 +203,7 @@ test('Happy path of adding several members together', (t) => {
 
         const accepted = next.acceptPending()
 
-        t.equal(accepted, 1, `${next.id} acepted pending request ${member.id}`)
+        t.equal(accepted, 1, `${next.id} accepted pending request ${member.id}`)
 
         previous = next
       }
@@ -216,7 +211,7 @@ test('Happy path of adding several members together', (t) => {
 
     const exists = previous.knownMembers.includes(member.id)
 
-    t.ok(exists, 'Member got added')
+    t.ok(exists, `Member ${member.id} got added`)
 
     currentMembers.push(member)
 
@@ -233,13 +228,20 @@ function sync (member1: Member, member2: Member): void {
   member2.sync(member1)
 }
 
-function initializeMembers (n: number): Member[] {
+function initializeMembers (n: number, { knowEachOther }: { knowEachOther: boolean }): Member[] {
   const members: Member[] = []
-  while (n-- > 0) members.push(new Member())
+  if (n === 0) {
+    return []
+  }
+  const initiator = new Member({ id: 'a' })
+  members.push(initiator)
+  while (n-- > 1) members.push(new Member({ id: String.fromCharCode(0x61 + n), initiator: initiator.id }))
 
-  const knownMembers = members.map(({ id }: Member) => id)
-  for (const member of members) {
-    member.knownMembers = knownMembers
+  if (knowEachOther) {
+    const knownMembers = members.map(({ id }: Member) => id)
+    for (const member of members) {
+      member.knownMembers = knownMembers
+    }
   }
 
   return members
