@@ -7,8 +7,8 @@
   "scripts": {
     "test": "ts-node ./test",
     "lint": "eslint --ext .js,.ts . ",
-    "precommit": "npm run lint -- --fix",
-    "build": "tsc"
+    "build": "tsc",
+    "postinstall": "husky install"
   },
   "eslintConfig": {
     "extends": "standard-with-typescript",
