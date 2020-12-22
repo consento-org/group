@@ -102,11 +102,11 @@ test('Two members do an add at once', (t) => {
 
   sync(a, b)
 
-  t.equal(b.acceptPending(), 1, 'B accepted Request A')
+  t.equal(b.acceptPending().length, 1, 'B accepted Request A')
 
   sync(d, e)
 
-  t.equal(e.acceptPending(), 1, 'E accepted Request D')
+  t.equal(e.acceptPending().length, 1, 'E accepted Request D')
 
   sync(e, c)
   sync(b, c)
@@ -117,19 +117,19 @@ test('Two members do an add at once', (t) => {
 
   sync(c, b)
 
-  t.equal(b.acceptPending(), 1, 'B accepted Request D')
+  t.equal(b.acceptPending().length, 1, 'B accepted Request D')
 
   sync(c, e)
 
-  t.equal(e.acceptPending(), 1, 'E accepted Request A')
+  t.equal(e.acceptPending().length, 1, 'E accepted Request A')
 
   sync(e, d)
 
-  t.equal(d.acceptPending(), 1, 'D accepted Request A')
+  t.equal(d.acceptPending().length, 1, 'D accepted Request A')
 
   sync(b, a)
 
-  t.equal(a.acceptPending(), 1, 'A accepted request D')
+  t.equal(a.acceptPending().length, 1, 'A accepted request D')
 
   sync(a, c)
   sync(d, c)
@@ -153,7 +153,7 @@ test('Two members do an add at once', (t) => {
 
   t.equal(finallyPending.length, 1, 'G sees 1 pending request')
 
-  t.equal(g.acceptPending(), 1, 'G accepted request A')
+  t.equal(g.acceptPending().length, 1, 'G accepted request A')
 
   const wasFinallyAddedA = g.knownMembers.includes(f.id)
 
@@ -203,7 +203,7 @@ test('Happy path of adding several members together', (t) => {
 
         const accepted = next.acceptPending()
 
-        t.equal(accepted, 1, `${next.id} accepted pending request ${member.id}`)
+        t.equal(accepted.length, 1, `${next.id} accepted pending request ${member.id}`)
 
         previous = next
       }

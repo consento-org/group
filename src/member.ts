@@ -360,11 +360,11 @@ export class Member extends EventEmitter {
     return pending
   }
 
-  acceptPending (): number {
-    let accepted = 0
+  acceptPending (): Request[] {
+    const accepted: Request[] = []
     for (const requestState of this.getPendingRequests()) {
       this.acceptRequest(requestState.req)
-      accepted++
+      accepted.push(requestState.req)
     }
 
     this.processFeeds()
