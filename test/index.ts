@@ -253,8 +253,8 @@ function initializeMembers (n: number, { knowEachOther }: { knowEachOther: boole
     return []
   }
   const initiator = new Member({ id: 'a' })
-  members.push(initiator)
-  while (n-- > 1) members.push(new Member({ id: String.fromCharCode(0x61 + n), initiator: initiator.id }))
+  while (n-- > 1) members.unshift(new Member({ id: String.fromCharCode(0x61 + n), initiator: initiator.id }))
+  members.unshift(initiator)
 
   if (knowEachOther) {
     const knownMembers = members.map(({ id }: Member) => id)
