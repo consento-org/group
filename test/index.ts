@@ -97,11 +97,13 @@ test('Only two members remove each other', t => {
   sync(a, b)
 
   t.equals(b.signUnsigned().length, 1, 'B required to remove B')
+  t.equals(a.signUnsigned().length, 1, 'A required to remove A')
 
   t.equals(b.knownMembers.length, 1, 'B removed on B')
 
   sync(b, a)
-  t.equals(a.knownMembers.length, 1, 'B removed on A')
+  t.equals(a.knownMembers.length, 0, 'B removed on A')
+  t.equals(b.knownMembers.length, 0, 'A removed on B')
 
   t.equals(a.getUnsignedRequests().length, 0, 'No request should be active anymore on A as it was removed on B')
   t.end()
