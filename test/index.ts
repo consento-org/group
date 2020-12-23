@@ -77,7 +77,7 @@ test('Process request by syncing one peer at a time', (t) => {
 
   for (const next of members.slice(1)) {
     sync(previous, next)
-    next.acceptPending()
+    next.signUnsigned()
     sync(previous, next)
     previous = next
   }
@@ -96,14 +96,35 @@ test('Only two members remove each other', t => {
 
   sync(a, b)
 
-  t.equals(b.acceptPending().length, 1, 'B required to remove B')
+  t.equals(b.signUnsigned().length, 1, 'B required to remove B')
 
   t.equals(b.knownMembers.length, 1, 'B removed on B')
 
   sync(b, a)
   t.equals(a.knownMembers.length, 1, 'B removed on A')
 
-  t.equals(a.getPendingRequests().length, 0, 'No request should be pending anymore on A as it was removed on B')
+  t.equals(a.getUnsignedRequests().length, 0, 'No request should be active anymore on A as it was removed on B')
+  t.end()
+})
+
+test('Multiple requests get treated one at a time', t => {
+  const [a, b] = initializeMembers(3, { knowEachOther: true })
+
+  const e = new Member()
+  const f = new Member()
+  const g = new Member()
+
+  const r1 = a.requestAdd(e.id)
+  const r2 = a.requestAdd(f.id)
+  const r3 = b.requestAdd(g.id)
+
+  sync(a, b)
+
+  t.deepEquals(a.getUnsignedRequests().map(r => r.req), [r3], 'The request by `b` (r3) is not yet signed by `a`')
+  t.deepEquals(b.getUnsignedRequests().map(r => r.req), [r1], 'The request by `a` (r1) is not yet signed by `b`')
+  t.deepEquals(a.getActiveRequests().map(r => r.req), [r1, r3], 'Each members gets to have one request, `r1` for `a` and `r2` for `b`')
+  t.deepEquals(a.getPendingRequests().map(r => r.req), [r1, r2, r3], 'All Requests are listed.')
+
   t.end()
 })
 
@@ -121,43 +142,43 @@ test('Two members do an add at once', (t) => {
 
   sync(a, b)
 
-  t.equal(b.acceptPending().length, 1, 'B accepted Request A')
+  t.equal(b.signUnsigned().length, 1, 'B accepted Request A')
 
   sync(d, e)
 
-  t.equal(e.acceptPending().length, 1, 'E accepted Request D')
+  t.equal(e.signUnsigned().length, 1, 'E accepted Request D')
 
   sync(e, c)
   sync(b, c)
 
-  const pending = c.getPendingRequests()
+  const unsigned = c.getUnsignedRequests()
 
-  t.equal(pending.length, 2, 'C sees 2 pending requests')
+  t.equal(unsigned.length, 2, 'C sees 2 active requests')
 
   sync(c, b)
 
-  t.equal(b.acceptPending().length, 1, 'B accepted Request D')
+  t.equal(b.signUnsigned().length, 1, 'B accepted Request D')
 
   sync(c, e)
 
-  t.equal(e.acceptPending().length, 1, 'E accepted Request A')
+  t.equal(e.signUnsigned().length, 1, 'E accepted Request A')
 
   sync(e, d)
 
-  t.equal(d.acceptPending().length, 1, 'D accepted Request A')
+  t.equal(d.signUnsigned().length, 1, 'D accepted Request A')
 
   sync(b, a)
 
-  t.equal(a.acceptPending().length, 1, 'A accepted request D')
+  t.equal(a.signUnsigned().length, 1, 'A accepted request D')
 
   sync(a, c)
   sync(d, c)
 
-  const ready = c.getPendingRequests()
+  const ready = c.getUnsignedRequests()
 
-  t.equal(ready.length, 2, 'C sees 2 pending requests')
+  t.equal(ready.length, 2, 'C sees 2 ready-active requests')
 
-  c.acceptPending()
+  c.signUnsigned()
 
   const wasAddedA = c.knownMembers.includes(f.id)
 
@@ -168,11 +189,11 @@ test('Two members do an add at once', (t) => {
 
   sync(c, g)
 
-  const finallyPending = g.getPendingRequests()
+  const finallyUnsigned = g.getUnsignedRequests()
 
-  t.equal(finallyPending.length, 1, 'G sees 1 pending request')
+  t.equal(finallyUnsigned.length, 1, 'G sees 1 active request')
 
-  t.equal(g.acceptPending().length, 1, 'G accepted request A')
+  t.equal(g.signUnsigned().length, 1, 'G accepted request A')
 
   const wasFinallyAddedA = g.knownMembers.includes(f.id)
 
@@ -208,21 +229,21 @@ test('Happy path of adding several members together', (t) => {
     let previous = initiator
 
     if (others.length === 0) {
-      const pending = initiator.getPendingRequests()
+      const unsigned = initiator.getUnsignedRequests()
 
-      t.equal(pending.length, 0, `${initiator.id} doesn't see pending request ${member.id}`)
+      t.equal(unsigned.length, 0, `${initiator.id} doesn't see unsigned request ${member.id}`)
     } else {
       for (const next of others) {
         t.pass(`sync ${previous.id} -> ${next.id}`)
         sync(previous, next)
 
-        const pending = next.getPendingRequests()
+        const unsigned = next.getUnsignedRequests()
 
-        t.equal(pending.length, 1, `${next.id} sees pending request ${member.id}`)
+        t.equal(unsigned.length, 1, `${next.id} sees unsigned request ${member.id}`)
 
-        const accepted = next.acceptPending()
+        const signed = next.signUnsigned()
 
-        t.equal(accepted.length, 1, `${next.id} accepted pending request ${member.id}`)
+        t.equal(signed.length, 1, `${next.id} signed active request ${member.id}`)
 
         previous = next
       }

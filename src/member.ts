@@ -361,7 +361,6 @@ export class Member extends EventEmitter {
       const request = this.requests[id]
       const state = request.lastState
       if (state !== 'pending') continue
-      if (request.isSignedBy(this.id)) continue
       if (!this.knownMembers.includes(request.from)) continue
       pending.push(request)
     }
@@ -369,9 +368,24 @@ export class Member extends EventEmitter {
     return pending
   }
 
-  acceptPending (): Request[] {
+  getActiveRequests (): RequestState[] {
+    const foundRequestee = new Set()
+    return this.getPendingRequests().filter(request => {
+      if (foundRequestee.has(request.from)) {
+        return false
+      }
+      foundRequestee.add(request.from)
+      return true
+    })
+  }
+
+  getUnsignedRequests (): RequestState[] {
+    return this.getActiveRequests().filter(request => !request.isSignedBy(this.id))
+  }
+
+  signUnsigned (): Request[] {
     const accepted: Request[] = []
-    for (const requestState of this.getPendingRequests()) {
+    for (const requestState of this.getUnsignedRequests()) {
       this.acceptRequest(requestState.req)
       accepted.push(requestState.req)
     }
