@@ -265,6 +265,71 @@ test('Happy path of adding several members together', (t) => {
   }
 })
 
+test('Concurrent requests should resolve to the same state on all members', (t) => {
+  const [a, b, c] = initializeMembers(3, { knowEachOther: true })
+
+  // Set up two external peers
+  const d = new Member({id: 'd', initiator: a.id})
+  d.knownMembers = a.knownMembers.slice()
+  const e = new Member({id: 'e', initiator: a.id})
+  e.knownMembers = a.knownMembers.slice()
+
+  a.requestAdd(d.id)
+  c.requestAdd(e.id)
+
+  t.equal(a.getActiveRequests().length, 1, 'A has one pending request')
+  t.equal(c.getActiveRequests().length, 1, 'C has one pending request')
+
+  sync(a, b)
+
+  t.equal(b.getActiveRequests().length, 1, 'B has one pending request A')
+
+  t.equal(b.signUnsigned().length, 1, 'B accepted request A')
+
+  sync(c, b)
+
+  t.equal(b.getActiveRequests().length, 2, 'B has pending requests A and C')
+
+  t.equal(b.signUnsigned().length, 1, 'B accepted request C')
+
+  t.equal(c.getActiveRequests().length, 2, 'C has pending requests A and C')
+
+  t.equal(c.signUnsigned().length, 1, 'C accepted request A')
+
+  t.equal(c.getActiveRequests().length, 1, 'C has one pending request C')
+
+  t.ok(c.knownMembers.includes(d.id), 'C sees member D')
+
+  sync(b, a)
+
+  t.equal(a.getActiveRequests().length, 2, 'A has pending requests A and C')
+
+  t.equal(a.signUnsigned().length, 1, 'A accepted request C')
+
+  t.equal(a.getActiveRequests().length, 1, 'A has one pending request A')
+
+  t.ok(a.knownMembers.includes(e.id), 'A sees member E')
+
+  sync(a, c)
+
+  t.deepEqual(a.getActiveRequests(), [], 'A has no pending requests')
+  t.deepEqual(c.getActiveRequests(), [], 'C has no pending requests')
+
+  t.deepEqual(a.knownMembers, c.knownMembers, 'A and C converge on same set of peers')
+
+  sync(a, d)
+
+  t.deepEqual(a.knownMembers, d.knownMembers, 'A and D converge on same set of peers')
+
+  sync(c, e)
+
+  t.deepEqual(c.knownMembers, e.knownMembers, 'C and E converge on same set of peers')
+
+  t.deepEqual(d.knownMembers, e.knownMembers, 'D and E converge on same set of peers')
+
+  t.end()
+})
+
 function sync (member1: Member, member2: Member): void {
   member1.sync(member2)
   member2.sync(member1)
@@ -282,7 +347,8 @@ function initializeMembers (n: number, { knowEachOther }: { knowEachOther: boole
   if (knowEachOther) {
     const knownMembers = members.map(({ id }: Member) => id)
     for (const member of members) {
-      member.knownMembers = knownMembers
+      // Make a copy of the knownMembers instead of passing by reference
+      member.knownMembers = knownMembers.slice()
     }
   }
 
