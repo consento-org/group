@@ -1,5 +1,6 @@
 import { randomBytes } from 'crypto'
 import { EventEmitter } from 'events'
+import HLC, { Timestamp } from '@consento/hlc'
 
 export type ResponseType = 'accept' | 'deny' | 'cancel' | 'conflict'
 export type ResponseState =
@@ -18,7 +19,7 @@ export type ID = string
 export const REQUEST_TYPE = 'request' as RequestIdentifier
 export const RESPONSE_TYPE = 'response' as ResponseIdentifier
 
-interface RawRequest {
+export interface Request {
   // Used to differentiate between req/res
   type: RequestIdentifier
   // ID of the request
@@ -27,19 +28,13 @@ interface RawRequest {
   from: ID
   // What sort of operation this is
   operation: Operation
-}
 
-export interface WhoRequest extends RawRequest {
+  // When this event occured
+  timestamp: Timestamp
+
   // Who to add or remove
   who: ID
 }
-
-export interface MergeRequest extends RawRequest {
-  // Which requests have been merged for this one
-  toMerge: Request[]
-}
-
-export type Request = WhoRequest | MergeRequest
 
 export interface Response {
   // Used to differentiate between req/res
@@ -50,6 +45,9 @@ export interface Response {
   from: ID
   // Our response to this request
   response: ResponseType
+
+  // When this event occured
+  timestamp: Timestamp
 }
 
 export class RequestState {
@@ -60,22 +58,34 @@ export class RequestState {
 
   finished: boolean
   lastState: ResponseState
+  toSign: ID[]
 
-  constructor (req: Request) {
+  constructor (req: Request, toSign: ID[]) {
     this.req = req
     this.signatures = {}
     this.finished = false
     this.lastState = 'pending'
+    this.toSign = toSign
   }
 
   isSignedBy (id: ID): boolean {
     return this.signatures[id] !== undefined
   }
 
-  calculateState (
-    neededSignatures: number,
-    maxDenied: number = neededSignatures
-  ): ResponseState {
+  calculateState (): ResponseState {
+    let neededSignatures = this.toSign.length
+    if (
+      // Remove operations are okay with having one less
+      this.req.operation === 'remove' &&
+      // Two members can form a majority, to remove one of two members
+      // unilaterally is impossible
+      this.toSign.length > 2
+    ) {
+      neededSignatures--
+    }
+
+    const maxDenied = this.toSign.length - neededSignatures
+
     let state: ResponseState = 'pending'
     if (this.finished) state = 'finished'
     if (this.isCancelled()) state = 'cancelled'
@@ -89,6 +99,9 @@ export class RequestState {
   }
 
   addResponse (author: ID, response: Response): void {
+    if (!this.toSign.includes(author)) {
+      throw new Error(`Signed by invalid member: ${author} - ${this.toSign.toString()}`)
+    }
     this.signatures[author] = response
   }
 
@@ -102,6 +115,21 @@ export class RequestState {
 
   get operation (): Operation {
     return this.req.operation
+  }
+
+  get createdAt (): Timestamp {
+    return this.req.timestamp
+  }
+
+  get who (): ID {
+    return this.req.who
+  }
+
+  get lastSigned (): Timestamp {
+    return Object
+      .values(this.signatures)
+      .sort((a, b) => a.timestamp.compare(b.timestamp))[0]
+      ?.timestamp
   }
 
   numberDenied (): number {
@@ -131,21 +159,18 @@ export class RequestState {
   }
 }
 
-function allowAll (_request: Request): boolean {
-  return true
-}
-
-export type ShouldAcceptCB = (request: Request) => boolean
-
 export interface MemberConstructorOptions {
   id?: ID
   initiator?: ID
-  shouldAccept?: ShouldAcceptCB
 }
 
 export class Member extends EventEmitter {
   id: ID
+
+  clock: HLC
+
   ownFeed: FeedItem[]
+
   knownFeeds: {
     [id in ID]: FeedItem[];
   }
@@ -159,13 +184,13 @@ export class Member extends EventEmitter {
     [id in ID]: RequestState;
   }
 
-  knownMembers: string[]
-  shouldAccept: ShouldAcceptCB
+  // The initial known member for the group
+  initiator: ID
+  // The finished request history
+  finishedRequests: RequestState[]
 
   constructor (
-    { id, initiator, shouldAccept = allowAll }: MemberConstructorOptions = {
-      shouldAccept: allowAll
-    }
+    { id, initiator }: MemberConstructorOptions = {}
   ) {
     super()
     this.id = id ?? makeID()
@@ -178,8 +203,23 @@ export class Member extends EventEmitter {
       [this.id]: 0
     }
     this.requests = {}
-    this.knownMembers = [initiator ?? this.id]
-    this.shouldAccept = shouldAccept
+    this.initiator = initiator ?? this.id
+    this.finishedRequests = []
+    this.clock = new HLC()
+  }
+
+  get knownMembers (): ID[] {
+    const knownMembers: Set<ID> = new Set()
+    knownMembers.add(this.initiator)
+    const sorted = this.finishedRequests.sort((a, b) => a.lastSigned.compare(b.lastSigned))
+    for (const request of this.finishedRequests) {
+      if (request.operation === 'add') {
+        knownMembers.add(request.who)
+      } else if (request.operation === 'remove') {
+        knownMembers.delete(request.who)
+      }
+    }
+    return [...knownMembers]
   }
 
   sync (member: Member): void {
@@ -205,6 +245,10 @@ export class Member extends EventEmitter {
       const feed = this.getFeedFor(id)
       const item = feed[index]
       if (item === undefined) continue
+
+      // TODO: Handle errors with clocks
+      this.clock.update(item.timestamp)
+
       hasProcessed = true
 
       if (isRequest(item)) {
@@ -214,38 +258,14 @@ export class Member extends EventEmitter {
       } else if (isResponse(item)) {
         if (this.hasRequest(item.id)) {
           const req = this.getRequest(item.id)
+
           req.addResponse(id, item)
 
-          let neededSignatures = this.knownMembers.length
-          if (
-            // Remove operations are okay with having one less
-            req.operation === 'remove' &&
-            // Two members can form a majority, to remove one of two members
-            // unilaterally is impossible
-            this.knownMembers.length > 2
-          ) {
-            neededSignatures--
-          }
-
-          const maxDenied = this.knownMembers.length - neededSignatures
-
-          const state = req.calculateState(neededSignatures, maxDenied)
+          const state = req.calculateState()
 
           if (state === 'ready') {
-            if (req.operation === 'add') {
-              if (isWhoRequest(req.req)) {
-                const who = req.req.who
-                this.knownMembers.push(who)
-              }
-            } else if (req.operation === 'remove') {
-              if (isWhoRequest(req.req)) {
-                const who = req.req.who
-                this.knownMembers = this.knownMembers.filter(
-                  (id) => id !== who
-                )
-              }
-            }
             req.finish()
+            this.finishedRequests.push(req)
             if (this.isMember()) {
               this.emit('block', req)
             }
@@ -298,7 +318,11 @@ export class Member extends EventEmitter {
 
   private trackRequest (request: Request): void {
     const { id } = request
-    this.requests[id] = new RequestState(request)
+    // Instead of just getting knownMembers
+    // We should fetch the knownMembers at the time
+    // Recalculate on each sync
+    const toSign = this.knownMembers
+    this.requests[id] = new RequestState(request, toSign)
   }
 
   private getRequest (id: ID): RequestState {
@@ -314,12 +338,14 @@ export class Member extends EventEmitter {
   }
 
   makeRequest (who: ID, operation: Operation): Request {
+    const timestamp = this.getTime()
     const req = {
       type: REQUEST_TYPE,
       id: makeID(),
       from: this.id,
       who,
-      operation
+      operation,
+      timestamp
     }
 
     this.ownFeed.push(req)
@@ -333,12 +359,14 @@ export class Member extends EventEmitter {
   }
 
   makeResponse (request: Request, response: ResponseType): Response {
+    const timestamp = this.getTime()
     const { id, from } = request
     const res = {
       type: RESPONSE_TYPE,
       from,
       id,
-      response
+      response,
+      timestamp
     }
 
     this.ownFeed.push(res)
@@ -398,6 +426,10 @@ export class Member extends EventEmitter {
   isMember (): boolean {
     return this.knownMembers.includes(this.id)
   }
+
+  getTime (): Timestamp {
+    return this.clock.now()
+  }
 }
 
 export function isRequest (item: FeedItem): item is Request {
@@ -406,15 +438,6 @@ export function isRequest (item: FeedItem): item is Request {
 
 export function isResponse (item: FeedItem): item is Response {
   return item.type === RESPONSE_TYPE
-}
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function isMergeRequest (item: Request): item is MergeRequest {
-  return (item as MergeRequest).toMerge !== undefined
-}
-
-function isWhoRequest (item: Request): item is WhoRequest {
-  return (item as WhoRequest).who !== undefined
 }
 
 function makeID (): ID {

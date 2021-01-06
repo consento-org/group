@@ -68,6 +68,79 @@ test('Able to add a member by ID and sync', (t) => {
   t.end()
 })
 
+test('Happy path of adding several members together', (t) => {
+  const [a, b, c, d, e] = initializeMembers(5, { knowEachOther: false })
+
+  const currentMembers = [a]
+
+  authorizeMember(b)
+  authorizeMember(c)
+  authorizeMember(d)
+  authorizeMember(e)
+
+  const f = new Member({ id: 'f', initiator: 'a' })
+
+  sync(f, c)
+
+  t.deepEqual(f.knownMembers, c.knownMembers, 'Outside member resovled to same ID')
+
+  t.end()
+
+  function authorizeMember (member: Member, initiator?: Member): void {
+    initiator = initiator ?? currentMembers[currentMembers.length - 1]
+    const others = currentMembers.filter(other => other !== initiator)
+
+    initiator.requestAdd(member.id)
+
+    let previous = initiator
+
+    if (others.length === 0) {
+      const unsigned = initiator.getUnsignedRequests()
+
+      t.equal(unsigned.length, 0, `${initiator.id} doesn't see unsigned request ${member.id}`)
+    } else {
+      for (const next of others) {
+        t.pass(`sync ${previous.id} -> ${next.id}`)
+        sync(previous, next)
+
+        const unsigned = next.getUnsignedRequests()
+
+        t.equal(unsigned.length, 1, `${next.id} sees unsigned request ${member.id}`)
+
+        const signed = next.signUnsigned()
+
+        t.equal(signed.length, 1, `${next.id} signed active request ${member.id}`)
+
+        previous = next
+      }
+    }
+
+    const exists = previous.knownMembers.includes(member.id)
+
+    t.ok(exists, `Member ${member.id} got added`)
+
+    currentMembers.push(member)
+
+    for (const next of currentMembers) {
+      sync(next, previous)
+
+      t.deepEquals(next.knownMembers, previous.knownMembers, `${next.id} resolved expected members`)
+    }
+  }
+})
+
+test('Able to initialize a bunch of members', (t) => {
+  const members = initializeMembers(5, { knowEachOther: true })
+
+  const knownMembers = members.map(({ id }) => id)
+
+  for (const member of members) {
+    t.deepEqual(member.knownMembers, knownMembers, `${member.id} sees all members`)
+  }
+
+  t.end()
+})
+
 test('Process request by syncing one peer at a time', (t) => {
   const members = initializeMembers(5, { knowEachOther: true })
 
@@ -135,8 +208,10 @@ test('Two members do an add at once', (t) => {
 
   const f = new Member()
   const g = new Member()
-  f.knownMembers = a.knownMembers.slice()
-  g.knownMembers = a.knownMembers.slice()
+
+  // F and G should see all known members thus far
+  sync(a, f)
+  sync(a, g)
 
   a.requestAdd(f.id)
 
@@ -186,93 +261,22 @@ test('Two members do an add at once', (t) => {
 
   const wasAddedD = c.knownMembers.includes(g.id)
 
-  t.notOk(wasAddedA, 'F was not added via A')
+  t.ok(wasAddedA, 'F was added via A')
   t.ok(wasAddedD, 'G was added via D')
 
-  sync(c, g)
-
-  const finallyUnsigned = g.getUnsignedRequests()
-
-  t.equal(finallyUnsigned.length, 1, 'G sees 1 active request')
-
-  t.equal(g.signUnsigned().length, 1, 'G accepted request A')
-
-  const wasFinallyAddedA = g.knownMembers.includes(f.id)
-
-  t.ok(wasFinallyAddedA, 'F was added via A')
-
   t.end()
-})
-
-test('Happy path of adding several members together', (t) => {
-  const [a, b, c, d, e] = initializeMembers(5, { knowEachOther: false })
-
-  const currentMembers = [a]
-
-  authorizeMember(b)
-  authorizeMember(c)
-  authorizeMember(d)
-  authorizeMember(e)
-
-  const f = new Member({ id: 'f', initiator: 'a' })
-
-  sync(f, c)
-
-  t.deepEqual(f.knownMembers, c.knownMembers, 'Outside member resovled to same ID')
-
-  t.end()
-
-  function authorizeMember (member: Member, initiator?: Member): void {
-    initiator = initiator ?? currentMembers[currentMembers.length - 1]
-    const others = currentMembers.filter(other => other !== initiator)
-
-    initiator.requestAdd(member.id)
-
-    let previous = initiator
-
-    if (others.length === 0) {
-      const unsigned = initiator.getUnsignedRequests()
-
-      t.equal(unsigned.length, 0, `${initiator.id} doesn't see unsigned request ${member.id}`)
-    } else {
-      for (const next of others) {
-        t.pass(`sync ${previous.id} -> ${next.id}`)
-        sync(previous, next)
-
-        const unsigned = next.getUnsignedRequests()
-
-        t.equal(unsigned.length, 1, `${next.id} sees unsigned request ${member.id}`)
-
-        const signed = next.signUnsigned()
-
-        t.equal(signed.length, 1, `${next.id} signed active request ${member.id}`)
-
-        previous = next
-      }
-    }
-
-    const exists = previous.knownMembers.includes(member.id)
-
-    t.ok(exists, `Member ${member.id} got added`)
-
-    currentMembers.push(member)
-
-    for (const next of currentMembers) {
-      sync(next, previous)
-
-      t.deepEquals(next.knownMembers, previous.knownMembers, `${next.id} resolved expected members`)
-    }
-  }
 })
 
 test('Concurrent requests should resolve to the same state on all members', (t) => {
   const [a, b, c] = initializeMembers(3, { knowEachOther: true })
 
   // Set up two external peers
-  const d = new Member({id: 'd', initiator: a.id})
-  d.knownMembers = a.knownMembers.slice()
-  const e = new Member({id: 'e', initiator: a.id})
-  e.knownMembers = a.knownMembers.slice()
+  const d = new Member({ id: 'd', initiator: a.id })
+  const e = new Member({ id: 'e', initiator: a.id })
+
+  // Have them sync the initial knownMembers
+  sync(a, d)
+  sync(a, e)
 
   a.requestAdd(d.id)
   c.requestAdd(e.id)
@@ -341,15 +345,51 @@ function initializeMembers (n: number, { knowEachOther }: { knowEachOther: boole
     return []
   }
   const initiator = new Member({ id: 'a' })
-  while (n-- > 1) members.unshift(new Member({ id: String.fromCharCode(0x61 + n), initiator: initiator.id }))
+
+  while (n-- > 1) {
+    const member = new Member({
+      id: String.fromCharCode(0x61 + n),
+      initiator: initiator.id
+    })
+    members.unshift(member)
+  }
+
   members.unshift(initiator)
 
   if (knowEachOther) {
-    const knownMembers = members.map(({ id }: Member) => id)
-    for (const member of members) {
-      // Make a copy of the knownMembers instead of passing by reference
-      member.knownMembers = knownMembers.slice()
+    const toAdd = members.slice(1)
+
+    const currentMembers: Member[] = []
+
+    for (const member of toAdd) {
+      authorizeMember(member)
     }
+
+    function authorizeMember (member: Member): void {
+      const others = currentMembers.filter(other => other !== initiator)
+
+      initiator.requestAdd(member.id)
+
+      if (others.length !== 0) {
+        for (const next of others) {
+          sync(initiator, next)
+
+          next.signUnsigned()
+
+          sync(initiator, next)
+        }
+      }
+
+      currentMembers.push(member)
+
+      for(let next of others) {
+        sync(initiator, next)
+      }
+    }
+  }
+
+  for(let next of members) {
+    sync(initiator, next)
   }
 
   return members

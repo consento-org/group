@@ -30,6 +30,7 @@
   },
   "homepage": "https://github.com/consento-org/permissions-system-sim#readme",
   "dependencies": {
+    "@consento/hlc": "^1.0.0",
     "@types/node": "^14.14.10"
   },
   "devDependencies": {
