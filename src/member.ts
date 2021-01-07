@@ -211,7 +211,7 @@ export class Member extends EventEmitter {
   get knownMembers (): ID[] {
     const knownMembers: Set<ID> = new Set()
     knownMembers.add(this.initiator)
-    const sorted = this.finishedRequests.sort((a, b) => a.lastSigned.compare(b.lastSigned))
+    this.finishedRequests.sort((a, b) => a.lastSigned.compare(b.lastSigned))
     for (const request of this.finishedRequests) {
       if (request.operation === 'add') {
         knownMembers.add(request.who)

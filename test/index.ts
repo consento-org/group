@@ -365,6 +365,7 @@ function initializeMembers (n: number, { knowEachOther }: { knowEachOther: boole
       authorizeMember(member)
     }
 
+    // eslint-disable-next-line no-inner-declarations
     function authorizeMember (member: Member): void {
       const others = currentMembers.filter(other => other !== initiator)
 
@@ -382,13 +383,13 @@ function initializeMembers (n: number, { knowEachOther }: { knowEachOther: boole
 
       currentMembers.push(member)
 
-      for(let next of others) {
+      for (const next of others) {
         sync(initiator, next)
       }
     }
   }
 
-  for(let next of members) {
+  for (const next of members) {
     sync(initiator, next)
   }
 
