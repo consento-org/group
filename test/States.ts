@@ -1,0 +1,72 @@
+import test from 'fresh-tape'
+import { States } from '../src/States'
+
+test('Storing some states', t => {
+  const states = new States()
+  t.deepEquals(Object.keys(states.byState), [])
+  t.end()
+})
+
+test('Setting a state', t => {
+  const states = new States()
+  states.set('id', 'mystate')
+  t.equals(states.get('id'), 'mystate')
+  t.deepEquals(states.byState.mystate, new Set(['id']))
+  t.end()
+})
+
+test('Changing a state', t => {
+  const states = new States()
+  states.set('id', 'mystate')
+  states.set('id', 'otherState')
+  t.equals(states.get('id'), 'otherState')
+  t.equals(states.byState.mystate, undefined)
+  t.deepEquals(states.byState.otherState, new Set(['id']))
+  t.end()
+})
+
+test('Having multiple entries for the same state', t => {
+  const states = new States()
+  states.set('id1', 'mystate')
+  states.set('id2', 'mystate')
+  t.deepEquals(states.byState.mystate, new Set(['id1', 'id2']))
+  states.delete('id2')
+  states.delete('id1')
+  t.equals(states.byState.mystate, undefined)
+  t.end()
+})
+
+test('Typing states', t => {
+  type allowedStates = 'foo' | 'bar'
+  const states = new States<allowedStates>()
+  t.equals(states.byState.foo, undefined)
+  t.equals(states.byState.bar, undefined)
+  states.set('id', 'bar')
+  t.end()
+})
+
+test('Deleting States', t => {
+  const states = new States()
+  states.set('id', 'foo')
+  states.delete('id')
+  t.equals(states.byState.foo, undefined)
+  states.set('id', 'bar')
+  t.end()
+})
+
+test('States iterator', t => {
+  const states = new States()
+  states.set('a', 'foo')
+  states.set('d', 'bar')
+  states.set('b', 'bar')
+  states.set('c', 'foo')
+  states.set('e', 'baz')
+  t.deepEquals(Array.from(states), [
+    ['a', 'foo'],
+    ['c', 'foo'],
+    ['d', 'bar'],
+    ['b', 'bar'],
+    ['e', 'baz']
+  ])
+  t.end()
+})
