@@ -49,7 +49,10 @@ export class Permissions {
         return
       }
     } else if (isResponse(item)) {
-      if (this.requests.get(item.id) !== 'active') {
+      if (this.requests.get(item.id) === 'finished') {
+        throw new Error(`Trying to response to the already-finished request "${item.id}".`)
+      }
+      if (!this.requests.has(item.id)) {
         throw new Error(`Response for unknown request ${item.id}`)
       }
     }
