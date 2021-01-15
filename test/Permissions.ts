@@ -226,3 +226,10 @@ test('Previously pending requests need to become active', t => {
   t.equals(p.requests.get('3'), 'pending')
   t.end()
 })
+
+test('Can only remove added members', t => {
+  const p = new Permissions()
+  p.add(request({ operation: 'add', who: memberA, from: memberA }))
+  t.throws(() => p.add(request({ operation: 'remove', who: memberB, from: memberA })), /Cant remove b because it is not a member./)
+  t.end()
+})

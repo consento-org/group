@@ -163,19 +163,24 @@ export class Permissions {
 
   private handleRequest (request: Request): void {
     const members = this.members.byState.added ?? emptySet as Set<MemberId>
-    if (request.operation === 'add') {
+    if (request.operation === 'merge') {
+      throw new Error('todo')
+    }
+    if (request.operation === 'remove') {
+      if (this.members.get(request.who) === undefined) {
+        throw new Error(`Cant remove ${request.who} because it is not a member.`)
+      }
+    } else if (request.operation === 'add') {
       if (members.size < 2) {
         this.members.set(request.who, 'added')
         this.requests.set(request.id, 'finished')
         return
       }
-      this.openRequests.set(request.id, request)
-      this.requests.set(
-        request.id,
-        pushToMapped(this.openRequestsByMember, request.from, request) === 1 ? 'active' : 'pending'
-      )
-    } else {
-      throw new Error('todo')
     }
+    this.openRequests.set(request.id, request)
+    this.requests.set(
+      request.id,
+      pushToMapped(this.openRequestsByMember, request.from, request) === 1 ? 'active' : 'pending'
+    )
   }
 }
