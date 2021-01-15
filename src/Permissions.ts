@@ -1,4 +1,4 @@
-import { FeedItem, isRequest, isResponse } from './member'
+import { FeedItem, isRequest, isResponse, Request } from './member'
 import { States } from './States'
 import HLC, { Timestamp } from '@consento/hlc'
 
@@ -8,12 +8,22 @@ export type MemberId = string
 
 const emptySet = new Set()
 
+function pushToMapped <K, V> (map: Map<K, V[]>, key: K, value: V): number {
+  const list = map.get(key)
+  if (list === undefined) {
+    map.set(key, [value])
+    return 1
+  }
+  return list.push(value)
+}
+
 export class Permissions {
   readonly members = new States<MemberState>()
   readonly requests = new States<RequestState>()
   readonly clock = new HLC()
 
   private readonly memberTime = new Map<MemberId, Timestamp>()
+  private readonly openRequestsByMember = new Map<MemberId, Request[]>()
 
   add (item: FeedItem): void {
     const members = this.members.byState.added ?? emptySet as Set<MemberId>
@@ -39,15 +49,7 @@ export class Permissions {
     this.memberTime.set(item.from, item.timestamp)
     this.clock.update(item.timestamp)
     if (isRequest(item)) {
-      if (item.operation === 'add') {
-        if (members.size < 2) {
-          this.members.set(item.who, 'added')
-          this.requests.set(item.id, 'finished')
-          return
-        }
-        this.requests.set(item.id, 'active')
-        return
-      }
+      return this.handleRequest(item)
     } else if (isResponse(item)) {
       if (this.requests.get(item.id) === 'finished') {
         throw new Error(`Trying to response to the already-finished request "${item.id}".`)
@@ -57,5 +59,22 @@ export class Permissions {
       }
     }
     throw new Error('todo')
+  }
+
+  private handleRequest (request: Request): void {
+    const members = this.members.byState.added ?? emptySet as Set<MemberId>
+    if (request.operation === 'add') {
+      if (members.size < 2) {
+        this.members.set(request.who, 'added')
+        this.requests.set(request.id, 'finished')
+        return
+      }
+      this.requests.set(
+        request.id,
+        pushToMapped(this.openRequestsByMember, request.from, request) === 1 ? 'active' : 'pending'
+      )
+    } else {
+      throw new Error('todo')
+    }
   }
 }

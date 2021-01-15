@@ -7,6 +7,7 @@ import HLC, { Timestamp } from '@consento/hlc'
 const memberA = 'a'
 const memberB = 'b'
 const memberC = 'c'
+const memberD = 'c'
 const hlc = new HLC()
 
 function request (r: Partial<Request> & { operation: Operation, who: ID }): Request {
@@ -124,5 +125,18 @@ test('A response for a finished request is denied', t => {
   const p = new Permissions()
   p.add(request({ operation: 'add', id: 'a', who: memberA, from: memberA }))
   t.throws(() => p.add(response({ response: 'accept', id: 'a', from: memberA })), /Trying to response to the already-finished request "a"./)
+  t.end()
+})
+
+test('Multiple requests by a member will turn the later ones to "pending"', t => {
+  const p = new Permissions()
+  p.add(request({ operation: 'add', who: memberA, from: memberA }))
+  p.add(request({ operation: 'add', who: memberB, from: memberA }))
+  p.add(request({ operation: 'add', id: '3', who: memberC, from: memberA }))
+  p.add(request({ operation: 'add', id: '4', who: memberD, from: memberA }))
+  p.add(request({ operation: 'add', id: '5', who: memberD, from: memberA }))
+  t.equals(p.requests.get('3'), 'active')
+  t.equals(p.requests.get('4'), 'pending')
+  t.equals(p.requests.get('5'), 'pending')
   t.end()
 })
