@@ -4,13 +4,23 @@ import { States } from './States'
 export type MemberState = 'added' | 'removed'
 export type MemberId = string
 
+const emptySet = new Set()
+
 export class Permissions {
   readonly members = new States<MemberState>()
 
   add (item: Request): void {
-    if (item.who !== item.from) {
-      throw new Error('The first member can only add itself.')
+    const members = this.members.byState.added ?? emptySet as Set<MemberId>
+    if (members.size === 0) {
+      if (item.who !== item.from) {
+        throw new Error('The first member can only add itself.')
+      }
+      this.members.set(item.who, 'added')
+      return
     }
-    this.members.set(item.who, 'added')
+    if (!members.has(item.from)) {
+      throw new Error('unknown member')
+    }
+    throw new Error('todo')
   }
 }

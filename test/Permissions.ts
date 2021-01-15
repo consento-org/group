@@ -27,6 +27,13 @@ test('First initialization', t => {
 
 test('First member can not add a second member', t => {
   const p = new Permissions()
-  t.throws(() => p.add(request({ operation: 'add', who: memberA, from: memberB })))
+  t.throws(() => p.add(request({ operation: 'add', who: memberA, from: memberB })), /The first member can only add itself./)
+  t.end()
+})
+
+test('A unknown member is prevented from creating requests', t => {
+  const p = new Permissions()
+  p.add(request({ operation: 'add', who: memberA, from: memberA }))
+  t.throws(() => p.add(request({ operation: 'add', who: memberB, from: memberB })), /unknown member/)
   t.end()
 })
