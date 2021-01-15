@@ -7,7 +7,8 @@ import HLC, { Timestamp } from '@consento/hlc'
 const memberA = 'a'
 const memberB = 'b'
 const memberC = 'c'
-const memberD = 'c'
+const memberD = 'd'
+const memberE = 'e'
 const hlc = new HLC()
 
 function request (r: Partial<Request> & { operation: Operation, who: ID }): Request {
@@ -220,7 +221,7 @@ test('Previously pending requests need to become active', t => {
   p.add(request({ operation: 'add', who: memberB, from: memberA }))
   p.add(request({ operation: 'add', id: '1', who: memberC, from: memberA }))
   p.add(request({ operation: 'add', id: '2', who: memberD, from: memberA }))
-  p.add(request({ operation: 'add', id: '3', who: memberB, from: memberA }))
+  p.add(request({ operation: 'add', id: '3', who: memberE, from: memberA }))
   p.add(response({ response: 'accept', id: '1', from: memberB }))
   t.equals(p.requests.get('2'), 'active')
   t.equals(p.requests.get('3'), 'pending')
@@ -242,6 +243,14 @@ test('Can remove added members', t => {
   p.add(response({ response: 'accept', id: '1', from: memberB }))
   t.equals(p.requests.get('1'), 'finished')
   t.deepEquals(p.members.byState.added, new Set([memberA]))
+  t.end()
+})
+
+test('Can not add already added members', t => {
+  const p = new Permissions()
+  p.add(request({ operation: 'add', who: memberA, from: memberA }))
+  p.add(request({ operation: 'add', who: memberB, from: memberA }))
+  t.throws(() => p.add(request({ operation: 'add', who: memberB, from: memberA })), /Cant add b as it is already added/)
   t.end()
 })
 

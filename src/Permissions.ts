@@ -177,6 +177,9 @@ export class Permissions {
       if (memberState === 'removed') {
         throw new Error(`Cant add previously removed member ${request.who}`)
       }
+      if (memberState === 'added') {
+        throw new Error(`Cant add ${request.who} as it is already added`)
+      }
     }
     this.openRequests.set(request.id, request)
     this.requests.set(
