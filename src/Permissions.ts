@@ -15,6 +15,9 @@ export class Permissions {
       if (item.who !== item.from) {
         throw new Error('The first member can only add itself.')
       }
+      if (item.operation !== 'add') {
+        throw new Error('First request needs to be an add request.')
+      }
       this.members.set(item.who, 'added')
       return
     }
