@@ -114,27 +114,30 @@ export class Permissions {
   }
 
   private finishRequest (request: Request): void {
+    if (request.operation === 'merge') {
+      throw new Error('todo')
+    }
     if (request.operation === 'add') {
       this.members.set(request.who, 'added')
-      this.requests.set(request.id, 'finished')
-      this.openRequests.delete(request.id)
-      this.signatures.delete(request.id)
-      const list = this.openRequestsByMember.get(request.from)
-      if (list === undefined) {
-        throw new Error('This may never occur')
-      }
-      if (list.shift() !== request) {
-        throw new Error('This may also never occur')
-      }
-      const entry = list[0]
-      if (entry === undefined) {
-        this.openRequestsByMember.delete(request.from)
-      } else {
-        this.requests.set(entry.id, 'active')
-      }
-      return
+    } else {
+      this.members.set(request.who, 'removed')
     }
-    throw new Error('todo')
+    this.requests.set(request.id, 'finished')
+    this.openRequests.delete(request.id)
+    this.signatures.delete(request.id)
+    const list = this.openRequestsByMember.get(request.from)
+    if (list === undefined) {
+      throw new Error('This may never occur')
+    }
+    if (list.shift() !== request) {
+      throw new Error('This may also never occur')
+    }
+    const entry = list[0]
+    if (entry === undefined) {
+      this.openRequestsByMember.delete(request.from)
+    } else {
+      this.requests.set(entry.id, 'active')
+    }
   }
 
   private handleCancel (response: Response, openRequest?: Request): void {
@@ -162,7 +165,6 @@ export class Permissions {
   }
 
   private handleRequest (request: Request): void {
-    const members = this.members.byState.added ?? emptySet as Set<MemberId>
     if (request.operation === 'merge') {
       throw new Error('todo')
     }
@@ -170,17 +172,14 @@ export class Permissions {
       if (this.members.get(request.who) === undefined) {
         throw new Error(`Cant remove ${request.who} because it is not a member.`)
       }
-    } else if (request.operation === 'add') {
-      if (members.size < 2) {
-        this.members.set(request.who, 'added')
-        this.requests.set(request.id, 'finished')
-        return
-      }
     }
     this.openRequests.set(request.id, request)
     this.requests.set(
       request.id,
       pushToMapped(this.openRequestsByMember, request.from, request) === 1 ? 'active' : 'pending'
     )
+    if (this.requests.get(request.id) === 'active' && this.getRequiredSignatures(request) <= 0) {
+      this.finishRequest(request)
+    }
   }
 }

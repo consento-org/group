@@ -233,3 +233,14 @@ test('Can only remove added members', t => {
   t.throws(() => p.add(request({ operation: 'remove', who: memberB, from: memberA })), /Cant remove b because it is not a member./)
   t.end()
 })
+
+test('Can remove added members', t => {
+  const p = new Permissions()
+  p.add(request({ operation: 'add', who: memberA, from: memberA }))
+  p.add(request({ operation: 'add', who: memberB, from: memberA }))
+  p.add(request({ operation: 'remove', id: '1', who: memberB, from: memberA }))
+  p.add(response({ response: 'accept', id: '1', from: memberB }))
+  t.equals(p.requests.get('1'), 'finished')
+  t.deepEquals(p.members.byState.added, new Set([memberA]))
+  t.end()
+})
