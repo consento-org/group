@@ -178,3 +178,12 @@ test('A member can not deny their own request', t => {
   t.throws(() => p.add(response({ response: 'deny', id: '3', from: memberA })), /Member a can not deny their own request 3. Maybe they meant to cancel?/)
   t.end()
 })
+
+test('Can not accept finished request', t => {
+  const p = new Permissions()
+  p.add(request({ operation: 'add', who: memberA, id: '1', from: memberA }))
+  p.add(request({ operation: 'add', who: memberB, from: memberA }))
+  p.add(request({ operation: 'add', id: '1', who: memberC, from: memberA }))
+  t.throws(() => p.add(response({ id: '1', response: 'accept', from: memberA })), /Cant accept own request./)
+  t.end()
+})

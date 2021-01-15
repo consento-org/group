@@ -73,7 +73,19 @@ export class Permissions {
     if (response.response === 'deny') {
       return this.handleDeny(response, openRequest)
     }
+    if (response.response === 'accept') {
+      return this.handleAccept(response, openRequest)
+    }
     throw new Error('todo')
+  }
+
+  private handleAccept (response: Response, openRequest?: Request): void {
+    if (openRequest !== undefined) {
+      if (openRequest.from === response.from) {
+        throw new Error('Cant accept own request.')
+      }
+    }
+    // TODO: should we thrown an error if the request is not active
   }
 
   private handleCancel (response: Response, openRequest?: Request): void {
