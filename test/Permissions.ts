@@ -194,5 +194,7 @@ test('A member can accept a request', t => {
   p.add(request({ operation: 'add', who: memberB, from: memberA }))
   p.add(request({ operation: 'add', id: '1', who: memberC, from: memberA }))
   p.add(response({ response: 'accept', id: '1', from: memberB }))
+  t.equals(p.requests.get('1'), 'finished')
+  t.deepEquals(p.members.byState.added, new Set([memberA, memberB, memberC]))
   t.end()
 })

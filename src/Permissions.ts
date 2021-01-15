@@ -18,6 +18,23 @@ function pushToMapped <K, V> (map: Map<K, V[]>, key: K, value: V): number {
   return list.push(value)
 }
 
+function deleteFromMapped <K, V> (map: Map<K, V[]>, key: K, value: V): boolean {
+  const list = map.get(key)
+  if (list === undefined) {
+    return false
+  }
+  const index = list.indexOf(value)
+  if (index === -1) {
+    return false
+  }
+  if (list.length === 1) {
+    map.delete(key)
+    return true
+  }
+  list.splice(index, 1)
+  return true
+}
+
 export class Permissions {
   readonly members = new States<MemberState>()
   readonly requests = new States<RequestState>()
@@ -26,6 +43,7 @@ export class Permissions {
   private readonly memberTime = new Map<MemberId, Timestamp>()
   private readonly openRequests = new Map<RequestId, Request>()
   private readonly openRequestsByMember = new Map<MemberId, Request[]>()
+  private readonly signaturesForRequest = new Map<RequestId, Set<MemberId>>()
 
   add (item: FeedItem): void {
     const members = this.members.byState.added ?? emptySet as Set<MemberId>
@@ -84,8 +102,21 @@ export class Permissions {
       if (openRequest.from === response.from) {
         throw new Error('Cant accept own request.')
       }
+      this.finishRequest(openRequest)
     }
     // TODO: should we thrown an error if the request is not active
+  }
+
+  private finishRequest (request: Request): void {
+    if (request.operation === 'add') {
+      this.members.set(request.who, 'added')
+      this.requests.set(request.id, 'finished')
+      this.openRequests.delete(request.id)
+      this.signaturesForRequest.delete(request.id)
+      deleteFromMapped(this.openRequestsByMember, request.from, request)
+      return
+    }
+    throw new Error('todo')
   }
 
   private handleCancel (response: Response, openRequest?: Request): void {
