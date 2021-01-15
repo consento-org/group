@@ -70,3 +70,13 @@ test('States iterator', t => {
   ])
   t.end()
 })
+
+test('has state', t => {
+  const states = new States()
+  t.notOk(states.has('a'))
+  states.set('a', '1')
+  t.ok(states.has('a'))
+  states.delete('a')
+  t.notOk(states.has('a'))
+  t.end()
+})

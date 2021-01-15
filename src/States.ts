@@ -41,6 +41,10 @@ export class States <State extends string> implements Iterable<[id: string, stat
     }
   }
 
+  has (id: string): boolean {
+    return this.get(id) !== undefined
+  }
+
   get (id: string): State | undefined {
     for (const bucketState in this.byState) {
       if (bucketState !== undefined) {
