@@ -71,9 +71,14 @@ test('The first member can add a second member', t => {
 
 test('One of the first members can not simply add a third member', t => {
   const p = new Permissions()
-  p.add(request({ operation: 'add', who: memberA, from: memberA }))
-  p.add(request({ operation: 'add', who: memberB, from: memberA }))
-  p.add(request({ operation: 'add', who: memberC, from: memberA }))
-  t.deepEquals(p.members.byState.added, new Set([memberA, memberB]))
+  const requests = [
+    request({ operation: 'add', who: memberA, from: memberA }),
+    request({ operation: 'add', who: memberB, from: memberA }),
+    request({ operation: 'add', who: memberC, from: memberA })
+  ]
+  for (const [index, request] of Object.entries(requests)) {
+    p.add(request)
+    t.equals(p.requests.get(request.id), index < '2' ? 'finished' : 'active')
+  }
   t.end()
 })
