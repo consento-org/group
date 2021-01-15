@@ -29,7 +29,9 @@ export class Permissions {
     }
     if (isRequest(item)) {
       if (item.operation === 'add') {
-        this.members.set(item.who, 'added')
+        if (members.size < 2) {
+          this.members.set(item.who, 'added')
+        }
         return
       }
     }
