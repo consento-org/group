@@ -170,7 +170,7 @@ test('A member can deny someone elses request', t => {
   t.end()
 })
 
-test('A member can deny their own request', t => {
+test('A member can not deny their own request', t => {
   const p = new Permissions()
   p.add(request({ operation: 'add', who: memberA, from: memberA }))
   p.add(request({ operation: 'add', who: memberB, from: memberA }))
