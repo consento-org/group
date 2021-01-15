@@ -1,7 +1,7 @@
 import test from 'fresh-tape'
 import { randomBytes } from 'crypto'
 import { Permissions } from '../src/Permissions'
-import { Operation, Request, ID } from '../src/member'
+import { Operation, Request, ID, Response, ResponseType } from '../src/member'
 import HLC from '@consento/hlc'
 
 const memberA = 'a'
@@ -14,6 +14,16 @@ function request (r: Partial<Request> & { operation: Operation, who: ID }): Requ
     id: randomBytes(5).toString(),
     from: memberA,
     timestamp: hlc.now(),
+    ...r
+  }
+}
+
+function response (r: Partial<Response> & { response: ResponseType }): Response {
+  return {
+    type: 'response',
+    from: memberA,
+    timestamp: hlc.now(),
+    id: randomBytes(5).toString(),
     ...r
   }
 }
@@ -41,5 +51,11 @@ test('A unknown member is prevented from creating requests', t => {
   const p = new Permissions()
   p.add(request({ operation: 'add', who: memberA, from: memberA }))
   t.throws(() => p.add(request({ operation: 'add', who: memberB, from: memberB })), /unknown member/)
+  t.end()
+})
+
+test('The first operation can not be a response', t => {
+  const p = new Permissions()
+  t.throws(() => p.add(response({ response: 'accept' })), /First feed-item needs to be a request./)
   t.end()
 })
