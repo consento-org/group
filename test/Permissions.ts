@@ -2,7 +2,7 @@ import test from 'fresh-tape'
 import { randomBytes } from 'crypto'
 import { Permissions } from '../src/Permissions'
 import { Operation, Request, ID, Response, ResponseType } from '../src/member'
-import HLC from '@consento/hlc'
+import HLC, { Timestamp } from '@consento/hlc'
 
 const memberA = 'a'
 const memberB = 'b'
@@ -102,5 +102,13 @@ test('Request by other member may be older.', t => {
   p.add(request({ operation: 'add', who: memberA, from: memberA }))
   p.add(request({ operation: 'add', who: memberB, from: memberA }))
   p.add(request({ operation: 'add', who: memberC, from: memberB, timestamp: timeOld }))
+  t.end()
+})
+
+test('The Permission system carries its own clock that is updated with request items', t => {
+  const timestamp = new Timestamp({ wallTime: hlc.now().wallTime + 0xfffffffffffn, logical: 0 })
+  const p = new Permissions()
+  p.add(request({ operation: 'add', who: memberA, from: memberA, timestamp }))
+  t.equals(timestamp.compare(p.clock.now()), -1)
   t.end()
 })
