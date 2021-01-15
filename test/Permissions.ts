@@ -112,3 +112,10 @@ test('The Permission system carries its own clock that is updated with request i
   t.equals(timestamp.compare(p.clock.now()), -1)
   t.end()
 })
+
+test('A member cant respond to a unknown request', t => {
+  const p = new Permissions()
+  p.add(request({ operation: 'add', who: memberA, from: memberA }))
+  t.throws(() => p.add(response({ response: 'accept', id: 'a', from: memberA })), /Response for unknown request a/)
+  t.end()
+})

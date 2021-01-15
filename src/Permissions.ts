@@ -1,4 +1,4 @@
-import { FeedItem, isRequest } from './member'
+import { FeedItem, isRequest, isResponse } from './member'
 import { States } from './States'
 import HLC, { Timestamp } from '@consento/hlc'
 
@@ -47,6 +47,10 @@ export class Permissions {
         }
         this.requests.set(item.id, 'active')
         return
+      }
+    } else if (isResponse(item)) {
+      if (this.requests.get(item.id) !== 'active') {
+        throw new Error(`Response for unknown request ${item.id}`)
       }
     }
     throw new Error('todo')
