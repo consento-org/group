@@ -187,3 +187,12 @@ test('Can not accept finished request', t => {
   t.throws(() => p.add(response({ id: '1', response: 'accept', from: memberA })), /Cant accept own request./)
   t.end()
 })
+
+test('A member can accept a request', t => {
+  const p = new Permissions()
+  p.add(request({ operation: 'add', who: memberA, id: '1', from: memberA }))
+  p.add(request({ operation: 'add', who: memberB, from: memberA }))
+  p.add(request({ operation: 'add', id: '1', who: memberC, from: memberA }))
+  p.add(response({ response: 'accept', id: '1', from: memberB }))
+  t.end()
+})
