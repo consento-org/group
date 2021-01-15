@@ -159,3 +159,22 @@ test('A member can not cancel someone elses request', t => {
   t.throws(() => p.add(response({ response: 'cancel', id: '3', from: memberB })), /Member b can not cancel the request 3 by a./)
   t.end()
 })
+
+test('A member can deny someone elses request', t => {
+  const p = new Permissions()
+  p.add(request({ operation: 'add', who: memberA, from: memberA }))
+  p.add(request({ operation: 'add', who: memberB, from: memberA }))
+  p.add(request({ operation: 'add', id: '3', who: memberC, from: memberA }))
+  p.add(response({ response: 'deny', id: '3', from: memberB }))
+  t.equals(p.requests.get('3'), 'denied')
+  t.end()
+})
+
+test('A member can deny their own request', t => {
+  const p = new Permissions()
+  p.add(request({ operation: 'add', who: memberA, from: memberA }))
+  p.add(request({ operation: 'add', who: memberB, from: memberA }))
+  p.add(request({ operation: 'add', id: '3', who: memberC, from: memberA }))
+  t.throws(() => p.add(response({ response: 'deny', id: '3', from: memberA })), /Member a can not deny their own request 3. Maybe they meant to cancel?/)
+  t.end()
+})
