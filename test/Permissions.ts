@@ -261,6 +261,21 @@ test('Can not add already added members', t => {
   t.end()
 })
 
+test('Regularly removing of a member', t => {
+  const p = new Permissions()
+  p.add(request({ operation: 'add', who: memberA, from: memberA }))
+  p.add(request({ operation: 'add', who: memberB, from: memberA }))
+  p.add(request({ operation: 'add', who: memberC, id: '1', from: memberA }))
+  p.add(response({ id: '1', response: 'accept', from: memberB }))
+  p.add(request({ operation: 'remove', who: memberA, id: '2', from: memberB }))
+  t.equals(p.requests.get('2'), 'active')
+  p.add(response({ id: '2', response: 'accept', from: memberC }))
+  t.equals(p.requests.get('2'), 'finished')
+  t.equals(p.members.get(memberA), 'removed')
+  t.deepEquals(p.members.byState.added, new Set([memberB, memberC]))
+  t.end()
+})
+
 test('Can not re-add members', t => {
   const p = new Permissions()
   p.add(request({ operation: 'add', who: memberA, from: memberA }))

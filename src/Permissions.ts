@@ -97,6 +97,15 @@ export class Permissions {
     const amountMembers = this.members.byState.added?.size ?? 0
     // The signature of the member that created the request is not necessary
     const neededSignatures = amountMembers - 1
+    if (
+      // Remove operations are okay with having one less
+      request.operation === 'remove' &&
+      // Two members can form a majority, to remove one of two members
+      // unilaterally is impossible
+      amountMembers > 2
+    ) {
+      return neededSignatures - 1
+    }
     return neededSignatures
   }
 
