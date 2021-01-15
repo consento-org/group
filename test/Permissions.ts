@@ -198,3 +198,18 @@ test('A member can accept a request', t => {
   t.deepEquals(p.members.byState.added, new Set([memberA, memberB, memberC]))
   t.end()
 })
+
+test('Two members need to confirm the add-request', t => {
+  const p = new Permissions()
+  p.add(request({ operation: 'add', who: memberA, id: '1', from: memberA }))
+  p.add(request({ operation: 'add', who: memberB, from: memberA }))
+  p.add(request({ operation: 'add', id: '1', who: memberC, from: memberA }))
+  p.add(response({ response: 'accept', id: '1', from: memberB }))
+  p.add(request({ operation: 'add', id: '2', who: memberD, from: memberA }))
+  p.add(response({ response: 'accept', id: '2', from: memberB }))
+  t.equals(p.requests.get('2'), 'active')
+  p.add(response({ response: 'accept', id: '2', from: memberC }))
+  t.equals(p.requests.get('2'), 'finished')
+  t.deepEquals(p.members.byState.added, new Set([memberA, memberB, memberC, memberD]))
+  t.end()
+})

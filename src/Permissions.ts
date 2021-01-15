@@ -39,11 +39,11 @@ export class Permissions {
   readonly members = new States<MemberState>()
   readonly requests = new States<RequestState>()
   readonly clock = new HLC()
+  readonly signatures = new Map<RequestId, Set<MemberId>>()
 
   private readonly memberTime = new Map<MemberId, Timestamp>()
   private readonly openRequests = new Map<RequestId, Request>()
   private readonly openRequestsByMember = new Map<MemberId, Request[]>()
-  private readonly signaturesForRequest = new Map<RequestId, Set<MemberId>>()
 
   add (item: FeedItem): void {
     const members = this.members.byState.added ?? emptySet as Set<MemberId>
@@ -102,9 +102,32 @@ export class Permissions {
       if (openRequest.from === response.from) {
         throw new Error('Cant accept own request.')
       }
-      this.finishRequest(openRequest)
+      const signatures = this.addSignature(response)
+      if (signatures >= this.getRequiredSignatures(openRequest)) {
+        this.finishRequest(openRequest)
+      }
     }
     // TODO: should we thrown an error if the request is not active
+  }
+
+  private getRequiredSignatures (request: Request): number {
+    const amountMembers = this.members.byState.added?.size ?? 0
+    // The signature of the member that created the request is not necessary
+    const neededSignatures = amountMembers - 1
+    return neededSignatures
+  }
+
+  private addSignature (response: Response): number {
+    const signatures = this.signatures.get(response.id)
+    if (signatures === undefined) {
+      this.signatures.set(response.id, new Set(response.from))
+      return 1
+    }
+    if (signatures.has(response.from)) {
+      throw new Error(`${response.from} tried to sign the same request twice`)
+    }
+    signatures.add(response.from)
+    return signatures.size
   }
 
   private finishRequest (request: Request): void {
@@ -112,7 +135,7 @@ export class Permissions {
       this.members.set(request.who, 'added')
       this.requests.set(request.id, 'finished')
       this.openRequests.delete(request.id)
-      this.signaturesForRequest.delete(request.id)
+      this.signatures.delete(request.id)
       deleteFromMapped(this.openRequestsByMember, request.from, request)
       return
     }
