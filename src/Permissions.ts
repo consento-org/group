@@ -23,12 +23,10 @@ export class Permissions {
       if (item.operation !== 'add') {
         throw new Error('First request needs to be an add request.')
       }
-      this.members.set(item.who, 'added')
-      this.requests.set(item.id, 'finished')
-      return
-    }
-    if (!members.has(item.from)) {
-      throw new Error('unknown member')
+    } else {
+      if (!members.has(item.from)) {
+        throw new Error('unknown member')
+      }
     }
     if (isRequest(item)) {
       if (item.operation === 'add') {
