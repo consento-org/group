@@ -95,3 +95,12 @@ test('Requests by member need to be time-ordered', t => {
   )
   t.end()
 })
+
+test('Request by other member may be older.', t => {
+  const p = new Permissions()
+  const timeOld = hlc.now()
+  p.add(request({ operation: 'add', who: memberA, from: memberA }))
+  p.add(request({ operation: 'add', who: memberB, from: memberA }))
+  p.add(request({ operation: 'add', who: memberC, from: memberB, timestamp: timeOld }))
+  t.end()
+})
