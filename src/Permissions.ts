@@ -1,4 +1,4 @@
-import { FeedItem, isRequest, isResponse, Request } from './member'
+import { FeedItem, isRequest, isResponse, Request, Response } from './member'
 import { States } from './States'
 import HLC, { Timestamp } from '@consento/hlc'
 
@@ -51,12 +51,25 @@ export class Permissions {
     if (isRequest(item)) {
       return this.handleRequest(item)
     } else if (isResponse(item)) {
-      if (this.requests.get(item.id) === 'finished') {
-        throw new Error(`Trying to response to the already-finished request "${item.id}".`)
+      return this.handleResponse(item)
+    }
+    throw new Error('todo')
+  }
+
+  private handleResponse (response: Response): void {
+    const state = this.requests.get(response.id)
+    if (state === undefined) {
+      throw new Error(`Response for unknown request ${response.id}`)
+    }
+    if (state === 'finished') {
+      throw new Error(`Trying to response to the already-finished request "${response.id}".`)
+    }
+    if (response.response === 'cancel') {
+      if (state === 'active' || state === 'pending') {
+        this.requests.set(response.id, 'cancelled')
+        this.openRequestsByMember.delete(response.id)
       }
-      if (!this.requests.has(item.id)) {
-        throw new Error(`Response for unknown request ${item.id}`)
-      }
+      return
     }
     throw new Error('todo')
   }

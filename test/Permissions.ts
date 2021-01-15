@@ -140,3 +140,13 @@ test('Multiple requests by a member will turn the later ones to "pending"', t =>
   t.equals(p.requests.get('5'), 'pending')
   t.end()
 })
+
+test('A member can cancel its own request', t => {
+  const p = new Permissions()
+  p.add(request({ operation: 'add', who: memberA, from: memberA }))
+  p.add(request({ operation: 'add', who: memberB, from: memberA }))
+  p.add(request({ operation: 'add', id: '3', who: memberC, from: memberA }))
+  p.add(response({ response: 'cancel', id: '3', from: memberA }))
+  t.equals(p.requests.get('3'), 'cancelled')
+  t.end()
+})
