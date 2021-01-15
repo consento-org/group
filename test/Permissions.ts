@@ -286,3 +286,26 @@ test('Can not re-add members', t => {
   t.throws(() => p.add(request({ operation: 'add', who: memberB, from: memberA })), /Cant add previously removed member b/)
   t.end()
 })
+
+test('Can remove all members (locking/deleting the group)', t => {
+  const p = new Permissions()
+  p.add(request({ operation: 'add', who: memberA, from: memberA }))
+  p.add(request({ operation: 'add', who: memberB, from: memberA }))
+  p.add(request({ operation: 'remove', id: '1', who: memberB, from: memberA }))
+  p.add(response({ response: 'accept', id: '1', from: memberB }))
+  p.add(request({ operation: 'remove', who: memberA, from: memberA }))
+  t.equals(p.members.byState.added, undefined)
+  t.deepEquals(p.members.byState.removed, new Set([memberB, memberA]))
+  t.end()
+})
+
+test('Can not add members to a group after all were removed', t => {
+  const p = new Permissions()
+  p.add(request({ operation: 'add', who: memberA, from: memberA }))
+  p.add(request({ operation: 'add', who: memberB, from: memberA }))
+  p.add(request({ operation: 'remove', id: '1', who: memberB, from: memberA }))
+  p.add(response({ response: 'accept', id: '1', from: memberB }))
+  p.add(request({ operation: 'remove', who: memberA, from: memberA }))
+  t.throws(() => p.add(request({ operation: 'add', who: memberC, from: memberC })), /All members were removed./)
+  t.end()
+})

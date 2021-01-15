@@ -28,6 +28,10 @@ export class Permissions {
   private readonly openRequests = new Map<RequestId, Request>()
   private readonly openRequestsByMember = new Map<MemberId, Request[]>()
 
+  get isLocked (): boolean {
+    return this.members.byState.added === undefined && this.members.byState.removed !== undefined
+  }
+
   add <Input extends FeedItem> (item: Input): Input {
     const members = this.members.byState.added ?? emptySet as Set<MemberId>
     if (members.size === 0) {
@@ -39,6 +43,9 @@ export class Permissions {
       }
       if (item.operation !== 'add') {
         throw new Error('First request needs to be an add request.')
+      }
+      if (this.isLocked) {
+        throw new Error('All members were removed.')
       }
     } else {
       if (!members.has(item.from)) {
