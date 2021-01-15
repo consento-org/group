@@ -168,9 +168,14 @@ export class Permissions {
     if (request.operation === 'merge') {
       throw new Error('todo')
     }
+    const memberState = this.members.get(request.who)
     if (request.operation === 'remove') {
-      if (this.members.get(request.who) === undefined) {
+      if (memberState === undefined) {
         throw new Error(`Cant remove ${request.who} because it is not a member.`)
+      }
+    } else {
+      if (memberState === 'removed') {
+        throw new Error(`Cant add previously removed member ${request.who}`)
       }
     }
     this.openRequests.set(request.id, request)

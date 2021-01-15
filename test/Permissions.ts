@@ -244,3 +244,13 @@ test('Can remove added members', t => {
   t.deepEquals(p.members.byState.added, new Set([memberA]))
   t.end()
 })
+
+test('Can not re-add members', t => {
+  const p = new Permissions()
+  p.add(request({ operation: 'add', who: memberA, from: memberA }))
+  p.add(request({ operation: 'add', who: memberB, from: memberA }))
+  p.add(request({ operation: 'remove', id: '1', who: memberB, from: memberA }))
+  p.add(response({ response: 'accept', id: '1', from: memberB }))
+  t.throws(() => p.add(request({ operation: 'add', who: memberB, from: memberA })), /Cant add previously removed member b/)
+  t.end()
+})
