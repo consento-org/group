@@ -68,30 +68,36 @@ export class Permissions {
     }
     const openRequest = this.openRequests.get(response.id)
     if (response.response === 'cancel') {
-      if (openRequest !== undefined) {
-        if (openRequest.from !== response.from) {
-          throw new Error(`Member ${response.from} can not cancel the request ${response.id} by ${openRequest.from}.`)
-        }
-        this.requests.set(response.id, 'cancelled')
-        this.openRequests.delete(response.id)
-        this.openRequestsByMember.delete(response.id)
-      }
-      // TODO: Should we throw an error if the request is not active?
-      return
+      return this.handleCancel(response, openRequest)
     }
     if (response.response === 'deny') {
-      if (openRequest !== undefined) {
-        if (openRequest.from === response.from) {
-          throw new Error(`Member ${response.from} can not deny their own request ${response.id}. Maybe they meant to cancel?`)
-        }
-        this.requests.set(response.id, 'denied')
-        this.openRequests.delete(response.id)
-        this.openRequestsByMember.delete(response.id)
-      }
-      // TODO: Should we throw an error if the request is not active?
-      return
+      return this.handleDeny(response, openRequest)
     }
     throw new Error('todo')
+  }
+
+  private handleCancel (response: Response, openRequest?: Request): void {
+    if (openRequest !== undefined) {
+      if (openRequest.from !== response.from) {
+        throw new Error(`Member ${response.from} can not cancel the request ${response.id} by ${openRequest.from}.`)
+      }
+      this.requests.set(response.id, 'cancelled')
+      this.openRequests.delete(response.id)
+      this.openRequestsByMember.delete(response.id)
+    }
+    // TODO: Should we throw an error if the request is not active?
+  }
+
+  private handleDeny (response: Response, openRequest?: Request): void {
+    if (openRequest !== undefined) {
+      if (openRequest.from === response.from) {
+        throw new Error(`Member ${response.from} can not deny their own request ${response.id}. Maybe they meant to cancel?`)
+      }
+      this.requests.set(response.id, 'denied')
+      this.openRequests.delete(response.id)
+      this.openRequestsByMember.delete(response.id)
+    }
+    // TODO: Should we throw an error if the request is not active?
   }
 
   private handleRequest (request: Request): void {
