@@ -5,6 +5,7 @@ import HLC, { Timestamp } from '@consento/hlc'
 export type MemberState = 'added' | 'removed'
 export type RequestState = 'finished' | 'denied' | 'active' | 'pending' | 'conflicted' | 'cancelled'
 export type MemberId = string
+export type RequestId = string
 
 const emptySet = new Set()
 
@@ -23,6 +24,7 @@ export class Permissions {
   readonly clock = new HLC()
 
   private readonly memberTime = new Map<MemberId, Timestamp>()
+  private readonly openRequests = new Map<RequestId, Request>()
   private readonly openRequestsByMember = new Map<MemberId, Request[]>()
 
   add (item: FeedItem): void {
@@ -66,7 +68,12 @@ export class Permissions {
     }
     if (response.response === 'cancel') {
       if (state === 'active' || state === 'pending') {
+        const request = this.openRequests.get(response.id) as Request
+        if (request.from !== response.from) {
+          throw new Error(`Member ${response.from} can not cancel the request ${response.id} by ${request.from}.`)
+        }
         this.requests.set(response.id, 'cancelled')
+        this.openRequests.delete(response.id)
         this.openRequestsByMember.delete(response.id)
       }
       return
@@ -82,6 +89,7 @@ export class Permissions {
         this.requests.set(request.id, 'finished')
         return
       }
+      this.openRequests.set(request.id, request)
       this.requests.set(
         request.id,
         pushToMapped(this.openRequestsByMember, request.from, request) === 1 ? 'active' : 'pending'

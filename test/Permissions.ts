@@ -150,3 +150,12 @@ test('A member can cancel its own request', t => {
   t.equals(p.requests.get('3'), 'cancelled')
   t.end()
 })
+
+test('A member can not cancel someone elses request', t => {
+  const p = new Permissions()
+  p.add(request({ operation: 'add', who: memberA, from: memberA }))
+  p.add(request({ operation: 'add', who: memberB, from: memberA }))
+  p.add(request({ operation: 'add', id: '3', who: memberC, from: memberA }))
+  t.throws(() => p.add(response({ response: 'cancel', id: '3', from: memberB })), /Member b can not cancel the request 3 by a./)
+  t.end()
+})
