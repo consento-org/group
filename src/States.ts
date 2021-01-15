@@ -2,7 +2,9 @@ export class States <State extends string> implements Iterable<[id: string, stat
   readonly byState: Partial<{ [state in State]: Set<string> }> = {}
 
   set (id: string, state: State): void {
-    this.clear(id, state)
+    if (!this.clear(id, state)) {
+      return
+    }
     const bucket = this.byState[state]
     if (bucket === undefined) {
       this.byState[state] = new Set([id])
@@ -26,19 +28,23 @@ export class States <State extends string> implements Iterable<[id: string, stat
     }
   }
 
-  private clear (id: string, unlessState?: State): void {
+  private clear (id: string, unlessState?: State): boolean {
     for (const bucketState in this.byState) {
-      if (bucketState === unlessState) return
-      const bucket = this.byState[bucketState]
-      if (bucket !== undefined) {
-        bucket.delete(id)
-        if (bucket.size === 0) {
-          // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-          delete this.byState[bucketState]
-        }
-        return
+      const bucket = this.byState[bucketState] as Set<string>
+      if (!bucket.has(id)) {
+        continue
       }
+      if (bucketState === unlessState) {
+        return false
+      }
+      bucket.delete(id)
+      if (bucket.size === 0) {
+        // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+        delete this.byState[bucketState]
+      }
+      return true
     }
+    return true
   }
 
   has (id: string): boolean {

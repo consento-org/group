@@ -80,3 +80,21 @@ test('has state', t => {
   t.notOk(states.has('a'))
   t.end()
 })
+
+test('setting an existing value again should quick exit', t => {
+  const states = new States()
+  states.set('a', '1')
+  states.set('a', '1')
+  t.equals(states.get('a'), '1')
+  t.end()
+})
+
+test('setting an existing key again should not keep copies', t => {
+  const states = new States()
+  states.set('b', '2')
+  states.set('a', '1')
+  states.set('a', '2')
+  states.set('a', '3')
+  t.deepEquals(Array.from(states), [['b', '2'], ['a', '3']])
+  t.end()
+})
