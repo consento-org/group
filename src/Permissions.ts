@@ -64,7 +64,7 @@ export class Permissions {
       throw new Error(`Response for unknown request ${response.id}`)
     }
     if (state === 'finished') {
-      throw new Error(`Trying to response to the already-finished request "${response.id}".`)
+      throw new Error(`Received response to the already-finished request "${response.id}".`)
     }
     const openRequest = this.openRequests.get(response.id)
     if (response.response === 'cancel') {

@@ -124,7 +124,7 @@ test('A member cant respond to a unknown request', t => {
 test('A response for a finished request is denied', t => {
   const p = new Permissions()
   p.add(request({ operation: 'add', id: 'a', who: memberA, from: memberA }))
-  t.throws(() => p.add(response({ response: 'accept', id: 'a', from: memberA })), /Trying to response to the already-finished request "a"./)
+  t.throws(() => p.add(response({ response: 'accept', id: 'a', from: memberA })), /Received response to the already-finished request "a"./)
   t.end()
 })
 
