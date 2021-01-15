@@ -33,7 +33,8 @@ function response (r: Partial<Response> & { response: ResponseType }): Response 
 
 test('First initialization', t => {
   const p = new Permissions()
-  p.add(request({ operation: 'add', who: memberA, from: memberA }))
+  const req = request({ operation: 'add', who: memberA, from: memberA })
+  t.equals(p.add(req), req)
   t.deepEquals(p.members.byState.added, new Set(memberA))
   t.end()
 })

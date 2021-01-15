@@ -28,7 +28,7 @@ export class Permissions {
   private readonly openRequests = new Map<RequestId, Request>()
   private readonly openRequestsByMember = new Map<MemberId, Request[]>()
 
-  add (item: FeedItem): void {
+  add <Input extends FeedItem> (item: Input): Input {
     const members = this.members.byState.added ?? emptySet as Set<MemberId>
     if (members.size === 0) {
       if (!isRequest(item)) {
@@ -52,9 +52,11 @@ export class Permissions {
     this.memberTime.set(item.from, item.timestamp)
     this.clock.update(item.timestamp)
     if (isRequest(item)) {
-      return this.handleRequest(item)
+      this.handleRequest(item)
+      return item
     } else if (isResponse(item)) {
-      return this.handleResponse(item)
+      this.handleResponse(item)
+      return item
     }
     throw new Error('todo')
   }
