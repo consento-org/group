@@ -107,6 +107,13 @@ test('Request by other member may be older.', t => {
   t.end()
 })
 
+test('Same request ID cant be used twice', t => {
+  const p = new Permissions()
+  p.add(request({ operation: 'add', id: '1', who: memberA, from: memberA }))
+  t.throws(() => p.add(request({ operation: 'add', id: '1', who: memberB, from: memberA })), /Request ID=1 has already been used./)
+  t.end()
+})
+
 test('The Permission system carries its own clock that is updated with request items', t => {
   const timestamp = new Timestamp({ wallTime: hlc.now().wallTime + 0xfffffffffffn, logical: 0 })
   const p = new Permissions()
@@ -182,7 +189,7 @@ test('A member can not deny their own request', t => {
 
 test('Can not accept finished request', t => {
   const p = new Permissions()
-  p.add(request({ operation: 'add', who: memberA, id: '1', from: memberA }))
+  p.add(request({ operation: 'add', who: memberA, from: memberA }))
   p.add(request({ operation: 'add', who: memberB, from: memberA }))
   p.add(request({ operation: 'add', id: '1', who: memberC, from: memberA }))
   t.throws(() => p.add(response({ id: '1', response: 'accept', from: memberA })), /Cant accept own request./)
@@ -191,7 +198,7 @@ test('Can not accept finished request', t => {
 
 test('A member can accept a request', t => {
   const p = new Permissions()
-  p.add(request({ operation: 'add', who: memberA, id: '1', from: memberA }))
+  p.add(request({ operation: 'add', who: memberA, from: memberA }))
   p.add(request({ operation: 'add', who: memberB, from: memberA }))
   p.add(request({ operation: 'add', id: '1', who: memberC, from: memberA }))
   p.add(response({ response: 'accept', id: '1', from: memberB }))
@@ -202,7 +209,7 @@ test('A member can accept a request', t => {
 
 test('Two members need to confirm the add-request', t => {
   const p = new Permissions()
-  p.add(request({ operation: 'add', who: memberA, id: '1', from: memberA }))
+  p.add(request({ operation: 'add', who: memberA, from: memberA }))
   p.add(request({ operation: 'add', who: memberB, from: memberA }))
   p.add(request({ operation: 'add', id: '1', who: memberC, from: memberA }))
   p.add(response({ response: 'accept', id: '1', from: memberB }))
@@ -217,7 +224,7 @@ test('Two members need to confirm the add-request', t => {
 
 test('Previously pending requests need to become active', t => {
   const p = new Permissions()
-  p.add(request({ operation: 'add', who: memberA, id: '1', from: memberA }))
+  p.add(request({ operation: 'add', who: memberA, from: memberA }))
   p.add(request({ operation: 'add', who: memberB, from: memberA }))
   p.add(request({ operation: 'add', id: '1', who: memberC, from: memberA }))
   p.add(request({ operation: 'add', id: '2', who: memberD, from: memberA }))

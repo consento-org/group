@@ -168,6 +168,9 @@ export class Permissions {
     if (request.operation === 'merge') {
       throw new Error('todo')
     }
+    if (this.requests.has(request.id)) {
+      throw new Error(`Request ID=${request.id} has already been used.`)
+    }
     const memberState = this.members.get(request.who)
     if (request.operation === 'remove') {
       if (memberState === undefined) {
