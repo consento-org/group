@@ -80,5 +80,6 @@ test('One of the first members can not simply add a third member', t => {
     p.add(request)
     t.equals(p.requests.get(request.id), index < '2' ? 'finished' : 'active')
   }
+  t.deepEquals(p.members.byState.added, new Set([memberA, memberB]))
   t.end()
 })
