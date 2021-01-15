@@ -18,23 +18,6 @@ function pushToMapped <K, V> (map: Map<K, V[]>, key: K, value: V): number {
   return list.push(value)
 }
 
-function deleteFromMapped <K, V> (map: Map<K, V[]>, key: K, value: V): boolean {
-  const list = map.get(key)
-  if (list === undefined) {
-    return false
-  }
-  const index = list.indexOf(value)
-  if (index === -1) {
-    return false
-  }
-  if (list.length === 1) {
-    map.delete(key)
-    return true
-  }
-  list.splice(index, 1)
-  return true
-}
-
 export class Permissions {
   readonly members = new States<MemberState>()
   readonly requests = new States<RequestState>()
@@ -136,7 +119,19 @@ export class Permissions {
       this.requests.set(request.id, 'finished')
       this.openRequests.delete(request.id)
       this.signatures.delete(request.id)
-      deleteFromMapped(this.openRequestsByMember, request.from, request)
+      const list = this.openRequestsByMember.get(request.from)
+      if (list === undefined) {
+        throw new Error('This may never occur')
+      }
+      if (list.shift() !== request) {
+        throw new Error('This may also never occur')
+      }
+      const entry = list[0]
+      if (entry === undefined) {
+        this.openRequestsByMember.delete(request.from)
+      } else {
+        this.requests.set(entry.id, 'active')
+      }
       return
     }
     throw new Error('todo')

@@ -213,3 +213,16 @@ test('Two members need to confirm the add-request', t => {
   t.deepEquals(p.members.byState.added, new Set([memberA, memberB, memberC, memberD]))
   t.end()
 })
+
+test('Previously pending requests need to become active', t => {
+  const p = new Permissions()
+  p.add(request({ operation: 'add', who: memberA, id: '1', from: memberA }))
+  p.add(request({ operation: 'add', who: memberB, from: memberA }))
+  p.add(request({ operation: 'add', id: '1', who: memberC, from: memberA }))
+  p.add(request({ operation: 'add', id: '2', who: memberD, from: memberA }))
+  p.add(request({ operation: 'add', id: '3', who: memberB, from: memberA }))
+  p.add(response({ response: 'accept', id: '1', from: memberB }))
+  t.equals(p.requests.get('2'), 'active')
+  t.equals(p.requests.get('3'), 'pending')
+  t.end()
+})
