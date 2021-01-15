@@ -1,5 +1,6 @@
 import { FeedItem, isRequest } from './member'
 import { States } from './States'
+import { Timestamp } from '@consento/hlc'
 
 export type MemberState = 'added' | 'removed'
 export type RequestState = 'finished' | 'denied' | 'active' | 'pending' | 'conflicted' | 'cancelled'
@@ -10,6 +11,8 @@ const emptySet = new Set()
 export class Permissions {
   readonly members = new States<MemberState>()
   readonly requests = new States<RequestState>()
+
+  private readonly memberTime = new Map<MemberId, Timestamp>()
 
   add (item: FeedItem): void {
     const members = this.members.byState.added ?? emptySet as Set<MemberId>
@@ -28,6 +31,11 @@ export class Permissions {
         throw new Error('unknown member')
       }
     }
+    const lastTime = this.memberTime.get(item.from)
+    if (lastTime !== undefined && lastTime.compare(item.timestamp) >= 0) {
+      throw new Error(`Order error: The last item from "${item.from}" is newer than this request.`)
+    }
+    this.memberTime.set(item.from, item.timestamp)
     if (isRequest(item)) {
       if (item.operation === 'add') {
         if (members.size < 2) {

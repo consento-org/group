@@ -83,3 +83,15 @@ test('One of the first members can not simply add a third member', t => {
   t.deepEquals(p.members.byState.added, new Set([memberA, memberB]))
   t.end()
 })
+
+test('Requests by member need to be time-ordered', t => {
+  const p = new Permissions()
+  const time1 = hlc.now()
+  const time2 = hlc.now()
+  p.add(request({ operation: 'add', who: memberA, from: memberA, timestamp: time2 }))
+  t.throws(
+    () => p.add(request({ operation: 'add', who: memberA, from: memberA, timestamp: time1 })),
+    /Order error: The last item from "a" is newer than this request./
+  )
+  t.end()
+})
