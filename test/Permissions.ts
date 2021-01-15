@@ -59,3 +59,11 @@ test('The first operation can not be a response', t => {
   t.throws(() => p.add(response({ response: 'accept' })), /First feed-item needs to be a request./)
   t.end()
 })
+
+test('The first member can add a second member', t => {
+  const p = new Permissions()
+  p.add(request({ operation: 'add', who: memberA, from: memberA }))
+  p.add(request({ operation: 'add', who: memberB, from: memberA }))
+  t.deepEquals(p.members.byState.added, new Set([memberA, memberB]))
+  t.end()
+})

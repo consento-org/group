@@ -27,6 +27,12 @@ export class Permissions {
     if (!members.has(item.from)) {
       throw new Error('unknown member')
     }
+    if (isRequest(item)) {
+      if (item.operation === 'add') {
+        this.members.set(item.who, 'added')
+        return
+      }
+    }
     throw new Error('todo')
   }
 }
