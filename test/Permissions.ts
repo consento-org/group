@@ -35,7 +35,7 @@ test('First initialization', t => {
   const p = new Permissions()
   const req = request({ operation: 'add', who: memberA, from: memberA })
   t.equals(p.add(req), req)
-  t.deepEquals(p.members.byState.added, new Set(memberA))
+  t.deepEquals(Array.from(p.members.byState('added')), [memberA])
   t.end()
 })
 
@@ -68,7 +68,7 @@ test('The first member can add a second member', t => {
   const p = new Permissions()
   p.add(request({ operation: 'add', who: memberA, from: memberA }))
   p.add(request({ operation: 'add', who: memberB, from: memberA }))
-  t.deepEquals(p.members.byState.added, new Set([memberA, memberB]))
+  t.deepEquals(Array.from(p.members.byState('added')), [memberA, memberB])
   t.end()
 })
 
@@ -83,7 +83,7 @@ test('One of the first members can not simply add a third member', t => {
     p.add(request)
     t.equals(p.requests.get(request.id), index < '2' ? 'finished' : 'active')
   }
-  t.deepEquals(p.members.byState.added, new Set([memberA, memberB]))
+  t.deepEquals(Array.from(p.members.byState('added')), [memberA, memberB])
   t.end()
 })
 
@@ -204,7 +204,7 @@ test('A member can accept a request', t => {
   p.add(request({ operation: 'add', id: '1', who: memberC, from: memberA }))
   p.add(response({ response: 'accept', id: '1', from: memberB }))
   t.equals(p.requests.get('1'), 'finished')
-  t.deepEquals(p.members.byState.added, new Set([memberA, memberB, memberC]))
+  t.deepEquals(Array.from(p.members.byState('added')), [memberA, memberB, memberC])
   t.end()
 })
 
@@ -219,7 +219,7 @@ test('Two members need to confirm the add-request', t => {
   t.equals(p.requests.get('2'), 'active')
   p.add(response({ response: 'accept', id: '2', from: memberC }))
   t.equals(p.requests.get('2'), 'finished')
-  t.deepEquals(p.members.byState.added, new Set([memberA, memberB, memberC, memberD]))
+  t.deepEquals(Array.from(p.members.byState('added')), [memberA, memberB, memberC, memberD])
   t.end()
 })
 
@@ -250,7 +250,7 @@ test('Can remove added members', t => {
   p.add(request({ operation: 'remove', id: '1', who: memberB, from: memberA }))
   p.add(response({ response: 'accept', id: '1', from: memberB }))
   t.equals(p.requests.get('1'), 'finished')
-  t.deepEquals(p.members.byState.added, new Set([memberA]))
+  t.deepEquals(Array.from(p.members.byState('added')), [memberA])
   t.end()
 })
 
@@ -273,7 +273,7 @@ test('Regularly removing of a member', t => {
   p.add(response({ id: '2', response: 'accept', from: memberC }))
   t.equals(p.requests.get('2'), 'finished')
   t.equals(p.members.get(memberA), 'removed')
-  t.deepEquals(p.members.byState.added, new Set([memberB, memberC]))
+  t.deepEquals(Array.from(p.members.byState('added')), [memberB, memberC])
   t.end()
 })
 
@@ -294,8 +294,8 @@ test('Can remove all members (locking/deleting the group)', t => {
   p.add(request({ operation: 'remove', id: '1', who: memberB, from: memberA }))
   p.add(response({ response: 'accept', id: '1', from: memberB }))
   p.add(request({ operation: 'remove', who: memberA, from: memberA }))
-  t.equals(p.members.byState.added, undefined)
-  t.deepEquals(p.members.byState.removed, new Set([memberB, memberA]))
+  t.deepEquals(Array.from(p.members.byState('added')), [])
+  t.deepEquals(Array.from(p.members.byState('removed')), [memberB, memberA])
   t.end()
 })
 

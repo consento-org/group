@@ -7,8 +7,6 @@ export type RequestState = 'finished' | 'denied' | 'active' | 'pending' | 'confl
 export type MemberId = string
 export type RequestId = string
 
-const emptySet = new Set()
-
 function pushToMapped <K, V> (map: Map<K, V[]>, key: K, value: V): number {
   const list = map.get(key)
   if (list === undefined) {
@@ -29,11 +27,16 @@ export class Permissions {
   private readonly openRequestsByMember = new Map<MemberId, Request[]>()
 
   get isLocked (): boolean {
-    return this.members.byState.added === undefined && this.members.byState.removed !== undefined
+    if (this.members.byState('removed').size === 0) {
+      // We havn't removed members yet, so the system is still active: case before the first member.
+      return false
+    }
+    // If all members are removed, no new members can be possibly added; The system is locked.
+    return this.members.byState('added').size === 0
   }
 
   add <Input extends FeedItem> (item: Input): Input {
-    const members = this.members.byState.added ?? emptySet as Set<MemberId>
+    const members = this.members.byState('added')
     if (members.size === 0) {
       if (!isRequest(item)) {
         throw new Error('First feed-item needs to be a request.')
@@ -103,7 +106,7 @@ export class Permissions {
   }
 
   private getRequiredSignatures (request: Request): number {
-    const amountMembers = this.members.byState.added?.size ?? 0
+    const amountMembers = this.members.byState('added').size
     // The signature of the member that created the request is not necessary
     const neededSignatures = amountMembers - 1
     if (
