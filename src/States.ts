@@ -4,26 +4,42 @@ export interface ReadonlySet <T> {
   size: number
 }
 
-const emptySet = {
+export const EmptySet: ReadonlySet<any> = {
   has: (_: string) => false,
   [Symbol.iterator]: function * (): Iterator<string> {},
   size: 0
 }
 
 export class States <State extends string> implements Iterable<[id: string, state: State]> {
-  readonly _byState: Partial<{ [state in State]: Set<string> }> = {}
+  readonly #byState: Partial<{ [state in State]: Set<string> }> = {}
 
   byState (state: State): ReadonlySet<string> {
-    return this._byState[state] ?? emptySet
+    return this.#byState[state] ?? EmptySet
+  }
+
+  has (id: string): boolean {
+    return this.get(id) !== undefined
+  }
+
+  get (id: string): State | undefined {
+    for (const bucketState in this.#byState) {
+      if (bucketState !== undefined) {
+        const bucket = this.#byState[bucketState]
+        if (bucket?.has(id) ?? false) {
+          return bucketState
+        }
+      }
+    }
+    return undefined
   }
 
   set (id: string, state: State): void {
     if (!this.clear(id, state)) {
       return
     }
-    const bucket = this._byState[state]
+    const bucket = this.#byState[state]
     if (bucket === undefined) {
-      this._byState[state] = new Set([id])
+      this.#byState[state] = new Set([id])
       return
     }
     bucket.add(id)
@@ -34,8 +50,8 @@ export class States <State extends string> implements Iterable<[id: string, stat
   }
 
   * [Symbol.iterator] (): Iterator<[id: string, state: State]> {
-    for (const bucketState in this._byState) {
-      const bucket = this._byState[bucketState] as Set<string>
+    for (const bucketState in this.#byState) {
+      const bucket = this.#byState[bucketState] as Set<string>
       if (bucket !== undefined) {
         for (const entry of bucket) {
           yield [entry, bucketState]
@@ -45,8 +61,8 @@ export class States <State extends string> implements Iterable<[id: string, stat
   }
 
   private clear (id: string, unlessState?: State): boolean {
-    for (const bucketState in this._byState) {
-      const bucket = this._byState[bucketState] as Set<string>
+    for (const bucketState in this.#byState) {
+      const bucket = this.#byState[bucketState] as Set<string>
       if (!bucket.has(id)) {
         continue
       }
@@ -54,28 +70,8 @@ export class States <State extends string> implements Iterable<[id: string, stat
         return false
       }
       bucket.delete(id)
-      if (bucket.size === 0) {
-        // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-        delete this._byState[bucketState]
-      }
       return true
     }
     return true
-  }
-
-  has (id: string): boolean {
-    return this.get(id) !== undefined
-  }
-
-  get (id: string): State | undefined {
-    for (const bucketState in this._byState) {
-      if (bucketState !== undefined) {
-        const bucket = this._byState[bucketState]
-        if (bucket?.has(id) ?? false) {
-          return bucketState
-        }
-      }
-    }
-    return undefined
   }
 }
