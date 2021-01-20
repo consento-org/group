@@ -7,7 +7,13 @@ import {
   Response,
   FeedItem,
   isRequest,
-  isResponse
+  isResponse,
+  ID,
+  ResponseState,
+  REQUEST_TYPE,
+  Operation,
+  RESPONSE_TYPE,
+  ResponseType
 } from './FeedItem'
 
 export class RequestState {
@@ -321,7 +327,7 @@ export class Member extends EventEmitter {
   makeResponse (request: Request, response: ResponseType): Response {
     const timestamp = this.getTime()
     const { id, from } = request
-    const res = {
+    const res: Response = {
       type: RESPONSE_TYPE,
       from,
       id,

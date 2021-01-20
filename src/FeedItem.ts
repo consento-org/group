@@ -1,3 +1,5 @@
+import { Timestamp } from '@consento/hlc'
+
 export type ResponseType = 'accept' | 'deny' | 'cancel' | 'conflict'
 export type ResponseState =
   | 'pending'

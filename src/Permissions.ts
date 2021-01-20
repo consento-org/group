@@ -1,5 +1,5 @@
 import { FeedItem, isRequest, isResponse, Request, Response } from './FeedItem'
-import { States } from './States'
+import { States, ReadonlySet } from './States'
 import HLC, { Timestamp } from '@consento/hlc'
 
 export type MemberState = 'added' | 'removed'
@@ -105,7 +105,7 @@ export class Permissions {
     // TODO: should we thrown an error if the request is not active
   }
 
-  get currentMembers (): Set<MemberId> {
+  get currentMembers (): ReadonlySet<MemberId> {
     return this.members.byState('added')
   }
 
