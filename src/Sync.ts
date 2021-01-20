@@ -55,7 +55,7 @@ export class Feed {
     who: ID
     timestamp: Timestamp
   }): Request {
-    const req = {
+    const req: Request = {
       type: 'request',
       // TODO: Use more bytes?
       id: randomBytes(5).toString(),
@@ -63,7 +63,7 @@ export class Feed {
       timestamp,
       operation,
       who
-    } as Request
+    }
     this.items.push(req)
     return req
   }
@@ -77,13 +77,13 @@ export class Feed {
     response: ResponseType
     timestamp: Timestamp
   }): Response {
-    const res = {
+    const res: Response = {
       type: 'response',
       id,
       from: this.id,
       timestamp,
       response
-    } as Response
+    }
     this.items.push(res)
     return res
   }
