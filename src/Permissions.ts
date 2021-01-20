@@ -1,4 +1,4 @@
-import { FeedItem, isRequest, isResponse, Request, Response } from './member'
+import { FeedItem, isRequest, isResponse, Request, Response } from './FeedItem'
 import { States } from './States'
 import HLC, { Timestamp } from '@consento/hlc'
 
@@ -105,7 +105,12 @@ export class Permissions {
     // TODO: should we thrown an error if the request is not active
   }
 
+  get currentMembers (): Set<MemberId> {
+    return this.members.byState('added')
+  }
+
   private getRequiredSignatures (request: Request): number {
+    // TODO: Use request timestamp to get members at that time
     const amountMembers = this.members.byState('added').size
     // The signature of the member that created the request is not necessary
     const neededSignatures = amountMembers - 1
@@ -135,9 +140,6 @@ export class Permissions {
   }
 
   private finishRequest (request: Request): void {
-    if (request.operation === 'merge') {
-      throw new Error('todo')
-    }
     if (request.operation === 'add') {
       this.members.set(request.who, 'added')
     } else {
@@ -186,9 +188,6 @@ export class Permissions {
   }
 
   private handleRequest (request: Request): void {
-    if (request.operation === 'merge') {
-      throw new Error('todo')
-    }
     if (this.requests.has(request.id)) {
       throw new Error(`Request ID=${request.id} has already been used.`)
     }

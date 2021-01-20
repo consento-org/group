@@ -11,6 +11,9 @@ const memberD = 'd'
 const memberE = 'e'
 const hlc = new HLC()
 
+// TODO: Add messages to all assertions
+// TODO: Use Error messages / codes in assertions
+
 function request (r: Partial<Request> & { operation: Operation, who: ID }): Request {
   return {
     type: 'request',

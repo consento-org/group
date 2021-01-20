@@ -34,7 +34,8 @@ export class States <State extends string> implements Iterable<[id: string, stat
   }
 
   set (id: string, state: State): void {
-    if (!this.clear(id, state)) {
+    const didSet = !this.clear(id, state)
+    if (didSet) {
       return
     }
     const bucket = this.#byState[state]
