@@ -39,7 +39,7 @@ export class Feed {
   }
 
   hasMore (): boolean {
-    return !!this.length && (this.index < this.length)
+    return this.length > 0 && (this.index < this.length)
   }
 
   get length (): number {
@@ -118,7 +118,7 @@ export class Sync {
         hasProcessed = true
         feed.increment()
       } catch (e) {
-        if (e.message.startsWith('Response for unknown request')) {
+        if (String(e.message).startsWith('Response for unknown request')) {
         // It's fiiine, we'll deal with it later
         } else {
         // TODO: Should we handle errors in a better way?

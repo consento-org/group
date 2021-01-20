@@ -9,16 +9,13 @@
     "lint": "eslint --ext .js,.ts . ",
     "coverage": "c8 --reporter=html --reporter=lcov npm run test",
     "build": "tsc",
+    "protobuf": "protocol-buffers feeditem.proto -o src/feeditem.js",
     "postinstall": "husky install"
   },
   "eslintConfig": {
     "extends": "standard-with-typescript",
     "parserOptions": {
       "project": "./tsconfig.json"
-    },
-    "rules": {
-      "@typescript-eslint/restrict-template-expressions": 0,
-      "@typescript-eslint/strict-boolean-expressions": 0
     }
   },
   "eslintIgnore": [
@@ -49,6 +46,8 @@
     "eslint-plugin-standard": "^5.0.0",
     "fresh-tape": "^5.1.1",
     "husky": "^4.3.8",
+    "protocol-buffers": "^4.2.0",
+    "protocol-buffers-schema": "^3.5.1",
     "ts-node": "^9.1.1",
     "typescript": "^4.1.3"
   }
