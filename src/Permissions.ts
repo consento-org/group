@@ -23,8 +23,12 @@ export class Permissions {
   readonly signatures = new Map<RequestId, Set<MemberId>>()
 
   private readonly memberTime = new Map<MemberId, Timestamp>()
-  private readonly openRequests = new Map<RequestId, Request>()
   private readonly openRequestsByMember = new Map<MemberId, Request[]>()
+  readonly openRequests = new Map<RequestId, Request>()
+
+  get currentMembers (): ReadonlySet<MemberId> {
+    return this.members.byState('added')
+  }
 
   get isLocked (): boolean {
     if (this.members.byState('removed').size === 0) {
@@ -103,10 +107,6 @@ export class Permissions {
       }
     }
     // TODO: should we thrown an error if the request is not active
-  }
-
-  get currentMembers (): ReadonlySet<MemberId> {
-    return this.members.byState('added')
   }
 
   private getRequiredSignatures (request: Request): number {
