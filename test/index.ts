@@ -9,7 +9,6 @@ test('Able to initialize a member', (t) => {
   const member = new Member()
 
   t.pass('Able to process feeds with zero data')
-  t.equal(member.feed.get(1).type, 'response', 'auto-generated response')
   t.equal(member.feed.get(0).type, 'request', 'auto-generated request')
 
   t.end()
@@ -22,7 +21,7 @@ test('Able to add a member by ID', (t) => {
 
   t.ok(req, 'Generated a request')
 
-  t.equal(member.feed.get(3).type, 'response', 'auto-generated response')
+  t.equal(member.feed.get(1).type, 'request', 'auto-generated request')
 
   const pending = member.getActiveRequests()
 
@@ -39,7 +38,7 @@ test('Able to add a member by ID', (t) => {
   t.end()
 })
 
-test.skip('Able to add a member by ID and sync', (t) => {
+test('Able to add a member by ID and sync', (t) => {
   const member = new Member()
   const other = new Member({ initiator: member.id })
 
@@ -47,19 +46,9 @@ test.skip('Able to add a member by ID and sync', (t) => {
 
   t.ok(req, 'Generated a request')
 
-  const res = member.acceptRequest(req)
-
-  t.ok(res, 'Generated response')
-
-  member.processFeeds()
-
   other.sync(member)
 
   t.pass('Able to sync with member')
-
-  other.processFeeds()
-
-  t.pass('Able to process feeds after sync')
 
   const expectedMembers = [member.id, other.id]
   t.deepEqual(
@@ -71,7 +60,7 @@ test.skip('Able to add a member by ID and sync', (t) => {
   t.end()
 })
 
-test.skip('Happy path of adding several members together', (t) => {
+test('Happy path of adding several members together', (t) => {
   const [a, b, c, d, e] = initializeMembers(5, { knowEachOther: false })
 
   const currentMembers = [a]
@@ -132,7 +121,7 @@ test.skip('Happy path of adding several members together', (t) => {
   }
 })
 
-test.skip('Able to initialize a bunch of members', (t) => {
+test('Able to initialize a bunch of members', (t) => {
   const members = initializeMembers(5, { knowEachOther: true })
 
   const knownMembers = members.map(({ id }) => id)
@@ -144,7 +133,7 @@ test.skip('Able to initialize a bunch of members', (t) => {
   t.end()
 })
 
-test.skip('Process request by syncing one peer at a time', (t) => {
+test('Process request by syncing one peer at a time', (t) => {
   const members = initializeMembers(5, { knowEachOther: true })
 
   let previous = members[0]
@@ -164,7 +153,7 @@ test.skip('Process request by syncing one peer at a time', (t) => {
   t.end()
 })
 
-test.skip('Only two members remove each other', t => {
+test('Only two members remove each other', t => {
   const [a, b] = initializeMembers(2, { knowEachOther: true })
 
   a.requestRemove(b.id)
@@ -185,12 +174,12 @@ test.skip('Only two members remove each other', t => {
   t.end()
 })
 
-test.skip('Multiple requests get treated one at a time', t => {
+test('Multiple requests get treated one at a time', t => {
   const [a, b] = initializeMembers(3, { knowEachOther: true })
 
-  const e = new Member()
-  const f = new Member()
-  const g = new Member()
+  const e = new Member({id: 'e'})
+  const f = new Member({id: 'f'})
+  const g = new Member({id: 'g'})
 
   const r1 = a.requestAdd(e.id)
   const r2 = a.requestAdd(f.id)

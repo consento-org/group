@@ -61,7 +61,7 @@ export class Feed {
     const req: Request = {
       type: 'request',
       // TODO: Use more bytes?
-      id: randomBytes(5).toString(),
+      id: randomBytes(5).toString('hex'),
       from: this.id,
       timestamp,
       operation,

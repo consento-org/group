@@ -63,16 +63,20 @@ export class Permissions {
     if (lastTime !== undefined && lastTime.compare(item.timestamp) >= 0) {
       throw new Error(`Order error: The last item from "${item.from}" is newer than this request.`)
     }
-    this.memberTime.set(item.from, item.timestamp)
-    this.clock.update(item.timestamp)
+
     if (isRequest(item)) {
       this.handleRequest(item)
-      return item
     } else if (isResponse(item)) {
       this.handleResponse(item)
-      return item
+    } else {
+      throw new Error('Invalid FeedItem')
     }
-    throw new Error('todo')
+
+    // We should only update the timestamp on valid blocks that didn't throw
+    this.memberTime.set(item.from, item.timestamp)
+    this.clock.update(item.timestamp)
+
+    return item
   }
 
   private handleResponse (response: Response): void {
@@ -112,6 +116,7 @@ export class Permissions {
   private getRequiredSignatures (request: Request): number {
     // TODO: Use request timestamp to get members at that time
     const amountMembers = this.members.byState('added').size
+
     // The signature of the member that created the request is not necessary
     const neededSignatures = amountMembers - 1
     if (
@@ -188,6 +193,7 @@ export class Permissions {
   }
 
   private handleRequest (request: Request): void {
+    // TODO: Throw an error if requester already has an active request
     if (this.requests.has(request.id)) {
       throw new Error(`Request ID=${request.id} has already been used.`)
     }

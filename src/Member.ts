@@ -16,7 +16,7 @@ export interface MemberOptions {
 
 export class Member {
   readonly feed: Feed
-  readonly syncState: Sync = new Sync()
+  readonly syncState: Sync
   readonly id: ID
   readonly initiator: ID
 
@@ -28,6 +28,10 @@ export class Member {
     this.initiator = initiator
     this.feed = new Feed(id)
 
+    this.syncState = new Sync(initiator)
+
+    this.syncState.addFeed(this.feed)
+
     if (id === initiator) {
       this.requestAdd(this.id)
     }
@@ -38,10 +42,7 @@ export class Member {
   }
 
   get knownMembers (): ID[] {
-    if (this.permissions.isLocked) return []
-    const currentMembers = this.permissions.currentMembers
-    if (currentMembers.size === 0) return [this.initiator]
-    return [...currentMembers]
+    return this.syncState.knownMembers
   }
 
   sync (other: Member): void {
@@ -58,7 +59,6 @@ export class Member {
       who,
       timestamp: this.now()
     })
-    this.acceptRequest(req)
     this.processFeeds()
     return req
   }
@@ -99,7 +99,8 @@ export class Member {
   }
 
   getUnsignedRequests (): Request[] {
-    return this.getActiveRequests().filter(({ id }) => {
+    return this.getActiveRequests().filter(({ id, from }) => {
+      if(from === this.id) return false
       const signatures = this.permissions.signatures.get(id)
       if (signatures === undefined) return true
       return !signatures.has(this.id)

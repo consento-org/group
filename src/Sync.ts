@@ -7,6 +7,18 @@ import { Feed } from './Feed'
 export class Sync {
   readonly permissions = new Permissions()
   readonly knownFeeds = new Map<ID, Feed>()
+  readonly initiator: ID
+
+  constructor (initiator: ID) {
+    this.initiator = initiator
+  }
+
+  get knownMembers (): ID[] {
+    if (this.permissions.isLocked) return []
+    const currentMembers = this.permissions.currentMembers
+    if (currentMembers.size === 0) return [this.initiator]
+    return [...currentMembers]
+  }
 
   // Return value of `true` means stuff got synced
   sync (other: Sync): boolean {
@@ -24,7 +36,7 @@ export class Sync {
 
   processFeeds (): boolean {
     let hasProcessed = false
-    for (const id of this.permissions.currentMembers) {
+    for (const id of this.knownMembers) {
       try {
         const feed = this.getFeed(id)
         if (!feed.hasMore()) continue
