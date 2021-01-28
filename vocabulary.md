@@ -1,0 +1,31 @@
+# Vocabulary
+
+- `client` - a device or identifyable through an unique id, needs to have following secrets, may or may not be known to others.
+- `group` - a set of `clients`, clearly identifyable through an unique id.
+- `member` - a `client` that is currently part of the `group`.
+- `known-client` - a client that is or has-been part of the `group`.
+- `shard` - a part (or the whole) of the group secret that is known to the `client`.
+- `feed` - a append-only log (aka. hypercore)
+- `entry` - a single entry of many a feed `feed`
+- `request` - an entry to the feed that is not-yet signed.
+- `write` - an special kind of entry contains the `request` and all the known signatures for the request, it is also additionally signed by the `member` that initiated the `write`
+- `confirm-receipt` - a special kind of entry that verifies that a `member` received it's new `shard`.
+- `group-sign-key` - a secret that allows to write to the group feed. the group-sign-key is turned into shards using [Shamirs Secrets](https://en.wikipedia.org/wiki/Shamir%27s_Secret_Sharing)
+- `group-feed` - a feed of `writes`, contains all the writes that were signed, its the same for all clients - the source of truth.
+- `client-feed` - a feed of `request`s, contains all the requests, one per `known-client` and it also contains `writes` and `confirm-receipt`.
+- `ephemeral` - data that is not persisted but may be communicated between the known peers.
+- `outbox` - a set of `ephemeral` data that contains shards used to restore a `group-sign-key` or new `shard`s to be stored by each of the `members`.
+- `requestee` - the `member` that initially created the `request`.
+- `state` - exposed information of the client through the API. The state exposes information about the `client-state` and `request-state`
+    - `client-state` - state of a client as seen by another clients permission
+        - `sole-owner` - `client-state` of a client when the group has only one `client`. the client can freely change other operations.
+        - `pending-add` - `client-state` of a client that has been requested to be added to the group but hasn't finally been added.
+        - `confirming-add` - `client-state` of a client that has been confirmed to be added to the group but hasn't received the good news yet!
+        - `pending-remove` - `client-state` of a client that was requested to be removed from the group.
+        - `removed` - `client-state` of a client that was successfully removed.
+        - `member` - `client-state` of a client that has been added to the group successfully.
+    - `request-state` - state of a `request` by a `member`
+        - `pending` - initial state of the request
+        - `aborted` - aborted by the writer prior to writing it to the `group-feed`
+        - `processed` - request has been added to the `group-feed`
+- `sync` - event when the latest known information of all clients has been exchanged with each other.
