@@ -1,11 +1,18 @@
 import { FeedItem, isRequest, isResponse, Request, Response } from './FeedItem'
-import { States, ReadonlySet } from './States'
+import { States } from './States'
+// import { VersionedStates } from './VersionedStates'
 import HLC, { Timestamp } from '@consento/hlc'
 
-export type MemberState = 'added' | 'removed'
 export type RequestState = 'finished' | 'denied' | 'active' | 'pending' | 'conflicted' | 'cancelled'
 export type MemberId = string
 export type RequestId = string
+export type MemberStateState = 'added' | 'removed'
+
+export interface MemberState {
+  state: MemberStateState
+  id: MemberId
+  timestamp: Timestamp
+}
 
 function pushToMapped <K, V> (map: Map<K, V[]>, key: K, value: V): number {
   const list = map.get(key)
@@ -17,31 +24,38 @@ function pushToMapped <K, V> (map: Map<K, V[]>, key: K, value: V): number {
 }
 
 export class Permissions {
-  readonly members = new States<MemberState>()
+  readonly members = new Map<MemberId, MemberState>()
   readonly requests = new States<RequestState>()
   readonly clock = new HLC()
   readonly signatures = new Map<RequestId, Set<MemberId>>()
 
   private readonly memberTime = new Map<MemberId, Timestamp>()
   private readonly openRequestsByMember = new Map<MemberId, Request[]>()
+  private readonly openRequestTime = new Map<RequestId, Timestamp>()
   readonly openRequests = new Map<RequestId, Request>()
 
-  get currentMembers (): ReadonlySet<MemberId> {
-    return this.members.byState('added')
+  get currentMembers (): MemberId[] {
+    return [...this.members.values()]
+      .filter(({ state }) => state === 'added')
+      .sort(({ timestamp: time1 }, { timestamp: time2 }) => time1.compare(time2))
+      .map(({ id }) => id)
   }
 
   get isLocked (): boolean {
-    if (this.members.byState('removed').size === 0) {
-      // We havn't removed members yet, so the system is still active: case before the first member.
-      return false
-    }
+    const hasRemoved = [...this.members.values()].some(({ state }) => state === 'removed')
+
+    // We havn't removed members yet, so the system is still active: case before the first member.
+    if (!hasRemoved) return false
+
+    const hasAdded = [...this.members.values()].some(({ state }) => state === 'added')
+
     // If all members are removed, no new members can be possibly added; The system is locked.
-    return this.members.byState('added').size === 0
+    return !hasAdded
   }
 
   add <Input extends FeedItem> (item: Input): Input {
-    const members = this.members.byState('added')
-    if (members.size === 0) {
+    const members = this.currentMembers
+    if (members.length === 0) {
       if (!isRequest(item)) {
         throw new Error('First feed-item needs to be a request.')
       }
@@ -55,7 +69,7 @@ export class Permissions {
         throw new Error('All members were removed.')
       }
     } else {
-      if (!members.has(item.from)) {
+      if (!members.includes(item.from)) {
         throw new Error('unknown member')
       }
     }
@@ -79,6 +93,21 @@ export class Permissions {
     return item
   }
 
+  private getMembersByState (state: MemberStateState): MemberId[] {
+    return [...this.members.values()]
+      .filter((member) => member.state === state)
+      .map(({ id }) => id)
+  }
+
+  private getMembersByStateAndTime (state: MemberStateState, timestamp: Timestamp): MemberId[] {
+    return [...this.members.values()]
+      .filter((member) => {
+        if (member.state !== state) return false
+        return timestamp.compare(member.timestamp) >= 0
+      })
+      .map(({ id }) => id)
+  }
+
   private handleResponse (response: Response): void {
     const state = this.requests.get(response.id)
     if (state === undefined) {
@@ -87,17 +116,21 @@ export class Permissions {
     if (state === 'finished') {
       throw new Error(`Received response to the already-finished request "${response.id}".`)
     }
+    const { timestamp } = response
+    const existingTimestamp = this.openRequestTime.get(response.id)
+    if ((existingTimestamp !== undefined) && timestamp.compare(existingTimestamp) > 0) {
+      this.openRequestTime.set(response.id, timestamp)
+    }
     const openRequest = this.openRequests.get(response.id)
     if (response.response === 'cancel') {
-      return this.handleCancel(response, openRequest)
+      this.handleCancel(response, openRequest)
+    } else if (response.response === 'deny') {
+      this.handleDeny(response, openRequest)
+    } else if (response.response === 'accept') {
+      this.handleAccept(response, openRequest)
+    } else {
+      throw new Error('Invalid response type')
     }
-    if (response.response === 'deny') {
-      return this.handleDeny(response, openRequest)
-    }
-    if (response.response === 'accept') {
-      return this.handleAccept(response, openRequest)
-    }
-    throw new Error('todo')
   }
 
   private handleAccept (response: Response, openRequest?: Request): void {
@@ -114,8 +147,12 @@ export class Permissions {
   }
 
   private getRequiredSignatures (request: Request): number {
+    const requestTime = request.timestamp
+
+    const knownAtTime = this.getMembersByStateAndTime('added', requestTime)
+
     // TODO: Use request timestamp to get members at that time
-    const amountMembers = this.members.byState('added').size
+    const amountMembers = knownAtTime.length
 
     // The signature of the member that created the request is not necessary
     const neededSignatures = amountMembers - 1
@@ -145,10 +182,13 @@ export class Permissions {
   }
 
   private finishRequest (request: Request): void {
+    const timestamp = this.openRequestTime.get(request.id)
+    if(timestamp === undefined) throw new Error('No request time found')
+    const id = request.who
     if (request.operation === 'add') {
-      this.members.set(request.who, 'added')
+      this.members.set(id, { timestamp, id, state: 'added' })
     } else {
-      this.members.set(request.who, 'removed')
+      this.members.set(id, { timestamp, id, state: 'removed' })
     }
     this.requests.set(request.id, 'finished')
     this.openRequests.delete(request.id)
@@ -197,20 +237,27 @@ export class Permissions {
     if (this.requests.has(request.id)) {
       throw new Error(`Request ID=${request.id} has already been used.`)
     }
+    const existing = this.openRequestsByMember.get(request.from)
+
+    if (existing !== undefined && existing.length !== 0) {
+      throw new Error(`Member ${request.from} already has an open request`)
+    }
+
     const memberState = this.members.get(request.who)
     if (request.operation === 'remove') {
       if (memberState === undefined) {
         throw new Error(`Cant remove ${request.who} because it is not a member.`)
       }
-    } else {
-      if (memberState === 'removed') {
+    } else if (memberState !== undefined) {
+      if (memberState.state === 'removed') {
         throw new Error(`Cant add previously removed member ${request.who}`)
       }
-      if (memberState === 'added') {
+      if (memberState.state === 'added') {
         throw new Error(`Cant add ${request.who} as it is already added`)
       }
     }
     this.openRequests.set(request.id, request)
+    this.openRequestTime.set(request.id, request.timestamp)
     this.requests.set(
       request.id,
       pushToMapped(this.openRequestsByMember, request.from, request) === 1 ? 'active' : 'pending'

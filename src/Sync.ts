@@ -16,8 +16,8 @@ export class Sync {
   get knownMembers (): ID[] {
     if (this.permissions.isLocked) return []
     const currentMembers = this.permissions.currentMembers
-    if (currentMembers.size === 0) return [this.initiator]
-    return [...currentMembers]
+    if (currentMembers.length === 0) return [this.initiator]
+    return currentMembers
   }
 
   // Return value of `true` means stuff got synced
@@ -46,7 +46,12 @@ export class Sync {
         feed.increment()
       } catch (e) {
         if (String(e.message).startsWith('Response for unknown request')) {
-        // It's fiiine, we'll deal with it later
+        // console.debug(e)
+          // It's fiiine, we'll deal with it later
+          // Likely in a feed that hasn't been processed yet
+        } else if (String(e.message).endsWith('already has an open request')) {
+        // console.debug(e)
+          // Probably need to process this request on the next loop
         } else {
         // TODO: Should we handle errors in a better way?
           throw e

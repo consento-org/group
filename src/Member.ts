@@ -100,7 +100,7 @@ export class Member {
 
   getUnsignedRequests (): Request[] {
     return this.getActiveRequests().filter(({ id, from }) => {
-      if(from === this.id) return false
+      if (from === this.id) return false
       const signatures = this.permissions.signatures.get(id)
       if (signatures === undefined) return true
       return !signatures.has(this.id)

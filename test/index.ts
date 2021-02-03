@@ -177,9 +177,9 @@ test('Only two members remove each other', t => {
 test('Multiple requests get treated one at a time', t => {
   const [a, b] = initializeMembers(3, { knowEachOther: true })
 
-  const e = new Member({id: 'e'})
-  const f = new Member({id: 'f'})
-  const g = new Member({id: 'g'})
+  const e = new Member({ id: 'e' })
+  const f = new Member({ id: 'f' })
+  const g = new Member({ id: 'g' })
 
   const r1 = a.requestAdd(e.id)
   const r2 = a.requestAdd(f.id)
@@ -194,11 +194,11 @@ test('Multiple requests get treated one at a time', t => {
   t.end()
 })
 
-test.skip('Two members do an add at once', (t) => {
+test('Two members do an add at once', (t) => {
   const [a, b, c, d, e] = initializeMembers(5, { knowEachOther: true })
 
-  const f = new Member()
-  const g = new Member()
+  const f = new Member({ id: 'f', initiator: 'a' })
+  const g = new Member({ id: 'g', initiator: 'a' })
 
   // F and G should see all known members thus far
   sync(a, f)
@@ -258,7 +258,7 @@ test.skip('Two members do an add at once', (t) => {
   t.end()
 })
 
-test.skip('Concurrent requests should resolve to the same state on all members', (t) => {
+test('Concurrent requests should resolve to the same state on all members', (t) => {
   const [a, b, c] = initializeMembers(3, { knowEachOther: true })
 
   // Set up two external peers

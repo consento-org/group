@@ -158,6 +158,19 @@ export class VersionedStates <State extends string> implements Iterable<[id: str
     return version
   }
 
+  * byStateWithTime (state: State): IterableIterator<{id: string, timestamp: Timestamp}> {
+    let version: Version<State> = this.#latest
+    while (version !== initialVersion) {
+      if (version instanceof SetVersion) {
+        if (version.state === state) {
+          const { id, timestamp } = version
+          yield { id, timestamp }
+        }
+      }
+      version = version.previous
+    }
+  }
+
   set (timestamp: Timestamp, id: string, state: State): void {
     this.#latest = new SetVersion(timestamp, this.#latest, id, state)
   }
