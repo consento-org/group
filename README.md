@@ -1,2 +1,2 @@
 # permissions-system-sim
-A payground for simulationg flows in the consento permissions system
+A playground for simulating flows in the Consento permissions system
