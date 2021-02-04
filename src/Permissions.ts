@@ -183,7 +183,7 @@ export class Permissions {
 
   private finishRequest (request: Request): void {
     const timestamp = this.openRequestTime.get(request.id)
-    if(timestamp === undefined) throw new Error('No request time found')
+    if (timestamp === undefined) throw new Error('No request time found')
     const id = request.who
     if (request.operation === 'add') {
       this.members.set(id, { timestamp, id, state: 'added' })
