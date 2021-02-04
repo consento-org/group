@@ -182,7 +182,7 @@ test('Multiple requests get treated one at a time', t => {
   const g = new Member({ id: 'g' })
 
   const r1 = a.requestAdd(e.id)
-  const r2 = a.requestAdd(f.id)
+  a.requestAdd(f.id)
   const r3 = b.requestAdd(g.id)
 
   sync(a, b)
