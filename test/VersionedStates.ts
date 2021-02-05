@@ -63,3 +63,14 @@ test('Versions for data', t => {
   t.deepEquals(Array.from(states.at(time[5])), [['foo', 'y'], ['baz', 'a']])
   t.end()
 })
+
+test('Inserting states out of order', t => {
+  const states = new VersionedStates()
+  const time = [hlc.now(), hlc.now(), hlc.now(), hlc.now(), hlc.now(), hlc.now()]
+  states.set(time[1], 'foo', 'y')
+  states.set(time[0], 'foo', 'x')
+  t.deepEquals(Array.from(states.latest), [['foo', 'y']])
+  t.deepEquals(Array.from(states.at(time[0])), [['foo', 'x']])
+  t.deepEquals(Array.from(states.at(time[1])), [['foo', 'y']])
+  t.end()
+})

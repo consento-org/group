@@ -1,195 +1,140 @@
 import { Timestamp } from '@consento/hlc'
-import { EmptySet, ReadonlySet, States } from './States'
+import { ReadonlySet, States } from './States'
 
-export type Version <T extends string> = Omit<States<T>, '#byState' | 'set' | 'delete'> & {
-  previous: Version<T>
-  timestamp: Timestamp
-  [Symbol.iterator]: () => Iterator<[id: string, state: T]>
+export type Version <State extends string> = Omit<States<State>, '#byState' | 'set' | 'delete' | 'byState'> & {
+  byState: (state: State) => HistoryStateView<State>
+  [Symbol.iterator]: () => Iterator<[key: string, value: State]>
+  iterateWithTime: () => IterableIterator<[key: string, value: State, timestamp: Timestamp]>
 }
 
-class InitialVersion implements Version<string> {
-  previous = this
-  timestamp = new Timestamp({ wallTime: 0, logical: 0 })
-  byState (): ReadonlySet<string> {
-    return EmptySet
+interface Entry <State extends string> {
+  timestamp: Timestamp
+  id: string
+  state?: State
+}
+
+export class HistoryStateView <State extends string> implements ReadonlySet<string> {
+  view: HistoryView<State>
+  state: State
+
+  constructor (view: HistoryView<State>, state: State) {
+    this.view = view
+    this.state = state
   }
 
-  has (): boolean {
+  * [Symbol.iterator] (): Iterator<string, any, undefined> {
+    for (const [key, state] of this.view) {
+      if (state === this.state) yield key
+    }
+  }
+
+  has (entry: string): boolean {
+    for (const child of this) {
+      if (child === entry) return true
+    }
     return false
   }
 
-  get (): string | undefined {
-    return undefined
+  get size (): number {
+    let size = 0
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    for (const _any of this) size += 1
+    return size
   }
-
-  * [Symbol.iterator] (): Iterator<[id: string, state: string]> {}
 }
 
-const initialVersion = new InitialVersion()
+class HistoryView <State extends string> implements Version<State> {
+  timestamp: Timestamp | null
+  history: Array<Entry<State>>
 
-class DeleteVersion <T extends string> implements Version<T> {
-  timestamp: Timestamp
-  id: string
-  prevState: T | undefined
-  previous: Version<T>
-  prevStateSet: ReadonlySet<string>
-
-  constructor (timestamp: Timestamp, previous: Version<T>, id: string) {
+  constructor (timestamp: Timestamp | null, history: Array<Entry<State>>) {
     this.timestamp = timestamp
-    this.previous = previous
-    this.id = id
-    const prevState = previous.get(id)
-    this.prevState = prevState
-    if (prevState !== undefined) {
-      const prevStateSet = previous.byState(prevState)
-      this.prevStateSet = {
-        has: requestedId => {
-          if (id === requestedId) return false
-          return prevStateSet.has(requestedId)
-        },
-        size: prevStateSet.size - 1,
-        * [Symbol.iterator] () {
-          for (const requestedId of prevStateSet) {
-            if (requestedId !== id) {
-              yield requestedId
-            }
-          }
-        }
-      }
-    } else {
-      this.prevStateSet = EmptySet
-    }
-  }
-
-  * [Symbol.iterator] (): Iterator<[id: string, state: T]> {
-    for (const entry of this.previous) {
-      if (entry[0] !== this.id) {
-        yield entry
-      }
-    }
-  }
-
-  byState (state: T): ReadonlySet<string> {
-    if (this.prevState === state) {
-      return this.prevStateSet
-    }
-    return this.previous.byState(state)
+    this.history = history
   }
 
   has (id: string): boolean {
-    if (id === this.id) return false
-    return this.previous.has(id)
+    return this.get(id) !== undefined
   }
 
-  get (id: string): T | undefined {
-    if (id === this.id) return undefined
-    return this.previous.get(id)
+  byState (state: State): HistoryStateView<State> {
+    return new HistoryStateView(this, state)
   }
-}
 
-class SetVersion <T extends string> extends DeleteVersion<T> {
-  valueSet: ReadonlySet<string>
-  state: T
+  get (id: string): State | undefined {
+    for (const [key, value] of this) {
+      if (key === id) return value
+    }
+  }
 
-  constructor (timestamp: Timestamp, previous: Version<T>, id: string, state: T) {
-    super(timestamp, previous, id)
+  * [Symbol.iterator] (): Iterator<[key: string, value: State]> {
+    for (const [key, value] of this.iterateWithTime()) {
+      yield [key, value]
+    }
+  }
 
-    this.state = state
-    const valueSet = previous.byState(state)
-    this.valueSet = {
-      has: requestedId => {
-        if (id === requestedId) return true
-        return valueSet.has(requestedId)
-      },
-      size: valueSet.size + 1,
-      * [Symbol.iterator] () {
-        for (const requestedId of valueSet) {
-          yield requestedId
-        }
-        yield id
+  iterateWithTime (): IterableIterator<[key: string, value: State, timestamp: Timestamp]> {
+    const alreadyFound = new Set()
+    const entries: Array<[key: string, value: State, timestamp: Timestamp]> = []
+    for (const entry of this.history) {
+      if (this.timestamp !== null && entry.timestamp.compare(this.timestamp) > 0) {
+        continue
+      }
+      if (alreadyFound.has(entry.id)) {
+        continue
+      }
+      alreadyFound.add(entry.id)
+      if (entry.state !== undefined) {
+        entries.unshift([entry.id, entry.state, entry.timestamp])
       }
     }
-  }
-
-  byState (state: T): ReadonlySet<string> {
-    if (this.state === state) {
-      return this.valueSet
-    }
-    return super.byState(state)
-  }
-
-  has (id: string): boolean {
-    if (id === this.id) return true
-    return super.has(id)
-  }
-
-  get (id: string): T | undefined {
-    if (id === this.id) return this.state
-    return super.get(id)
-  }
-
-  * [Symbol.iterator] (): Iterator<[id: string, state: T]> {
-    const iter = super[Symbol.iterator]()
-    while (true) {
-      const entry = iter.next()
-      if (entry.done === true) break
-      else yield entry.value
-    }
-    yield [this.id, this.state]
+    return entries[Symbol.iterator]()
   }
 }
 
 export class VersionedStates <State extends string> implements Iterable<[id: string, state: State]> {
-  #latest: Version<State> = initialVersion as Version<State>
+  // Newest: 0; Oldest: N
+  history: Array<Entry<State>> = []
+  latest: Version<State>
 
-  byState (state: State): ReadonlySet<string> {
-    return this.#latest.byState(state)
+  constructor () {
+    this.latest = new HistoryView(null, this.history)
   }
 
-  get latest (): Version<State> {
-    return this.#latest
+  byState (state: State): HistoryStateView<string> {
+    return this.latest.byState(state)
   }
 
   at (timestamp: Timestamp): Version<State> {
-    let version: Version<State> = this.#latest
-    while (version.timestamp.compare(timestamp) > 0) {
-      version = version.previous
-    }
-    return version
+    return new HistoryView(timestamp, this.history)
   }
 
-  * byStateWithTime (state: State): IterableIterator<{id: string, timestamp: Timestamp}> {
-    let version: Version<State> = this.#latest
-    while (version !== initialVersion) {
-      if (version instanceof SetVersion) {
-        if (version.state === state) {
-          const { id, timestamp } = version
-          yield { id, timestamp }
-        }
-      }
-      version = version.previous
-    }
+  iterateWithTime (): Iterator<[id: string, state: State, timestamp: Timestamp]> {
+    return this.latest.iterateWithTime()
   }
 
   set (timestamp: Timestamp, id: string, state: State): void {
-    this.#latest = new SetVersion(timestamp, this.#latest, id, state)
+    this.history.unshift({ timestamp, id, state })
+    this._update()
   }
 
   delete (timestamp: Timestamp, id: string): void {
-    this.#latest = new DeleteVersion(timestamp, this.#latest, id)
+    this.history.unshift({ timestamp, id })
+    this._update()
   }
 
-  * [Symbol.iterator] (): Iterator<[id: string, state: State]> {
-    for (const entry of this.#latest) {
-      yield entry
-    }
+  _update (): void {
+    this.history = this.history.sort(({ timestamp: a }, { timestamp: b }) => a.compare(b) * -1)
+  }
+
+  [Symbol.iterator] (): Iterator<[id: string, state: State]> {
+    return this.latest[Symbol.iterator]()
   }
 
   has (id: string): boolean {
-    return this.#latest.has(id)
+    return this.latest.has(id)
   }
 
   get (id: string): State | undefined {
-    return this.#latest.get(id)
+    return this.latest.get(id)
   }
 }
