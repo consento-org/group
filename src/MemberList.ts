@@ -7,7 +7,6 @@ import { ReadonlySet } from './States'
 export type MemberState = 'added' | 'removed'
 
 export class MemberList {
-  private lastAdded: ReadonlySet<ID> = new Set<ID>()
   private readonly _state = new VersionedStates<MemberState>()
 
   add (member: ID, timestamp: Timestamp): void {
@@ -22,7 +21,7 @@ export class MemberList {
 
   added (at? : Timestamp): ReadonlySet<ID> {
     if (at === undefined) {
-      return this.lastAdded
+      return this._state.byState('added')
     } else {
       return this._state.at(at).byState('added')
     }
@@ -38,9 +37,5 @@ export class MemberList {
 
   state (member: ID): MemberState | undefined {
     return this._state.get(member)
-  }
-
-  private recalculate (): void {
-    this.lastAdded = this._state.byState('added')
   }
 }

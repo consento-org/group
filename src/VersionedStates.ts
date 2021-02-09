@@ -72,6 +72,7 @@ class HistoryView <State extends string> implements Version<State> {
     }
   }
 
+  // Iterate from oldest to newest
   iterateWithTime (): IterableIterator<[key: string, value: State, timestamp: Timestamp]> {
     const alreadyFound = new Set()
     const entries: Array<[key: string, value: State, timestamp: Timestamp]> = []
