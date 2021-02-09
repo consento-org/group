@@ -1,6 +1,3 @@
-# Consento Groups
-A payground for simulationg flows in the consento permissions system
+# Consento Group
 
-## TODO Tests:
-
-- one member does an operation while another removes that member: who wins?
+We are [working on version 1](https://github.com/consento-org/group/pull/1) of the [group](https://consento.org/blocks/group) block of Consento.
