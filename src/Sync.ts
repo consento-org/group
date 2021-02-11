@@ -21,26 +21,26 @@ export class Sync {
   }
 
   // Return value of `true` means stuff got synced
-  sync (other: Sync): boolean {
+  async sync (other: Sync): Promise<boolean> {
     let hasSynced: boolean = false
     for (const remoteFeed of other.allFeeds) {
       const localFeed = this.getFeed(remoteFeed.id)
-      const feedSynced = localFeed.sync(remoteFeed)
+      const feedSynced = await localFeed.sync(remoteFeed)
       hasSynced = feedSynced || hasSynced
     }
 
-    this.processFeeds()
+    await this.processFeeds()
 
     return hasSynced
   }
 
-  processFeeds (): boolean {
+  async processFeeds (): Promise<boolean> {
     let hasProcessed = false
     for (const id of this.knownMembers) {
       try {
-        const feed = this.getFeed(id)
+        const feed = await this.getFeed(id)
         if (!feed.hasMore()) continue
-        const item = feed.current()
+        const item = await feed.current()
         this.permissions.add(item)
         hasProcessed = true
         feed.increment()
@@ -61,7 +61,7 @@ export class Sync {
 
     if (hasProcessed) {
       // If we processed some new data, we should try to process the feeds again
-      this.processFeeds()
+      await this.processFeeds()
     }
 
     return hasProcessed

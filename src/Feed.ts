@@ -20,24 +20,25 @@ export class Feed {
   }
 
   // Return value of `true` means stuff got synced
-  sync (other: Feed): boolean {
+  async sync (other: Feed): Promise<boolean> {
     // TODO: detect potential fork in timestamps
     if (other.length > this.length) {
       this.items.push(...other.items.slice(this.length))
+      return true
     }
 
     return false
   }
 
-  current (): FeedItem {
-    return this.get(this.index)
+  async current (): Promise<FeedItem> {
+    return await this.get(this.index)
   }
 
   increment (): void {
     this.index++
   }
 
-  get (index: number): FeedItem {
+  async get (index: number): Promise<FeedItem> {
     return this.items[index]
   }
 
@@ -49,7 +50,7 @@ export class Feed {
     return this.items.length
   }
 
-  addRequest ({
+  async addRequest ({
     operation,
     who,
     timestamp
@@ -57,7 +58,7 @@ export class Feed {
     operation: Operation
     who: ID
     timestamp: Timestamp
-  }): Request {
+  }): Promise<Request> {
     const req: Request = {
       type: 'request',
       // TODO: Use more bytes?
@@ -71,7 +72,7 @@ export class Feed {
     return req
   }
 
-  addResponse ({
+  async addResponse ({
     id,
     response,
     timestamp
@@ -79,7 +80,7 @@ export class Feed {
     id: ID
     response: ResponseType
     timestamp: Timestamp
-  }): Response {
+  }): Promise<Response> {
     const res: Response = {
       type: 'response',
       id,

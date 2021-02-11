@@ -20,6 +20,13 @@ export class Member {
   readonly id: ID
   readonly initiator: ID
 
+  static async create (opts?: MemberOptions): Member {
+    const member = new Member(opts)
+    await member.init()
+
+    return member
+  }
+
   constructor ({
     id = randomBytes(8).toString('hex'),
     initiator = id
@@ -31,9 +38,11 @@ export class Member {
     this.syncState = new Sync(initiator)
 
     this.syncState.addFeed(this.feed)
+  }
 
-    if (id === initiator) {
-      this.requestAdd(this.id)
+  async init (): void {
+    if (this.id === this.initiator) {
+      await this.requestAdd(this.id)
     }
   }
 
@@ -45,52 +54,52 @@ export class Member {
     return this.syncState.knownMembers
   }
 
-  sync (other: Member): void {
-    this.syncState.sync(other.syncState)
+  async sync (other: Member): Promise<void> {
+    await this.syncState.sync(other.syncState)
   }
 
-  processFeeds (): void {
-    this.syncState.processFeeds()
+  async processFeeds (): Promise<void> {
+    await this.syncState.processFeeds()
   }
 
-  requestAdd (who: ID): Request {
-    const req = this.feed.addRequest({
+  async requestAdd (who: ID): Promise<Request> {
+    const req = await this.feed.addRequest({
       operation: 'add',
       who,
       timestamp: this.now()
     })
-    this.processFeeds()
+    await this.processFeeds()
     return req
   }
 
-  requestRemove (who: ID): Request {
-    const req = this.feed.addRequest({
+  async requestRemove (who: ID): Promise<Request> {
+    const req = await this.feed.addRequest({
       operation: 'remove',
       who,
       timestamp: this.now()
     })
-    this.processFeeds()
+    await this.processFeeds()
 
     return req
   }
 
-  acceptRequest ({ id }: Request): Response {
+  async acceptRequest ({ id }: Request): Promise<Response> {
     const res = this.feed.addResponse({
       id,
       response: 'accept',
       timestamp: this.now()
     })
-    this.processFeeds()
-    return res
+    await this.processFeeds()
+    return await res
   }
 
-  denyRequest ({ id }: Request): Response {
-    const res = this.feed.addResponse({
+  async denyRequest ({ id }: Request): Promise<Response> {
+    const res = await this.feed.addResponse({
       id,
       response: 'deny',
       timestamp: this.now()
     })
-    this.processFeeds()
+    await this.processFeeds()
     return res
   }
 
@@ -107,10 +116,14 @@ export class Member {
     })
   }
 
-  signUnsigned (): Response[] {
+  async signUnsigned (): Promise<Response[]> {
     const toSign = this.getUnsignedRequests()
+    const responses = []
 
-    const responses = toSign.map((req) => this.acceptRequest(req))
+    for (const req of toSign) {
+      const res = await this.acceptRequest(req)
+      responses.push(res)
+    }
 
     return responses
   }
