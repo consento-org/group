@@ -20,7 +20,7 @@ export class Member {
   readonly id: ID
   readonly initiator: ID
 
-  static async create (opts?: MemberOptions): Member {
+  static async create (opts?: MemberOptions): Promise<Member> {
     const member = new Member(opts)
     await member.init()
 
@@ -40,7 +40,7 @@ export class Member {
     this.syncState.addFeed(this.feed)
   }
 
-  async init (): void {
+  async init (): Promise<void> {
     if (this.id === this.initiator) {
       await this.requestAdd(this.id)
     }

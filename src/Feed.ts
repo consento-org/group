@@ -42,6 +42,11 @@ export class Feed {
     return this.items[index]
   }
 
+  async append (item: FeedItem): Promise<number> {
+    this.items.push(item)
+    return this.items.length
+  }
+
   hasMore (): boolean {
     return this.length > 0 && (this.index < this.length)
   }
@@ -68,7 +73,7 @@ export class Feed {
       operation,
       who
     }
-    this.items.push(req)
+    await this.append(req)
     return req
   }
 
@@ -88,7 +93,7 @@ export class Feed {
       timestamp,
       response
     }
-    this.items.push(res)
+    await this.append(res)
     return res
   }
 }
