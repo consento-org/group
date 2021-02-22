@@ -7,18 +7,20 @@ import { Permissions } from './Permissions'
 import { Sync } from './Sync'
 import { randomBytes } from 'crypto'
 import { Timestamp } from '@consento/hlc'
-import { Feed } from './Feed'
+import { Feed, FeedLoader, defaultFeedLoader } from './Feed'
 
 export interface MemberOptions {
   id?: ID
   initiator?: ID
+  loadFeed?: FeedLoader
 }
 
 export class Member {
-  readonly feed: Feed
-  readonly syncState: Sync
-  readonly id: ID
-  readonly initiator: ID
+  _feed?: Feed
+  _syncState?: Sync
+  readonly _id: ID
+  initiator: ID
+  private readonly loadFeed: FeedLoader
 
   static async create (opts?: MemberOptions): Promise<Member> {
     const member = new Member(opts)
@@ -29,21 +31,44 @@ export class Member {
 
   constructor ({
     id = randomBytes(8).toString('hex'),
-    initiator = id
+    initiator = id,
+    loadFeed = defaultFeedLoader
   }: MemberOptions = {}) {
-    this.id = id
+    this._id = id
     this.initiator = initiator
-    this.feed = new Feed(id)
+    this.loadFeed = loadFeed
+  }
 
-    this.syncState = new Sync(initiator)
-
-    this.syncState.addFeed(this.feed)
+  isInitiator (): boolean {
+    return this.id === this.initiator
   }
 
   async init (): Promise<void> {
-    if (this.id === this.initiator) {
+    this._feed = await this.loadFeed(this._id)
+
+    // Workaround for when feeds give you a new ID based on your given ID
+    // TODO: Clean this up?
+    if (this.initiator === this._id) this.initiator = this.id
+
+    this._syncState = new Sync(this.initiator, this.loadFeed)
+
+    await this.syncState.addFeed(this.feed)
+
+    if (this.isInitiator()) {
       await this.requestAdd(this.id)
     }
+  }
+
+  get syncState (): Sync {
+    return this._syncState as Sync
+  }
+
+  get id (): ID {
+    return this.feed.id
+  }
+
+  get feed (): Feed {
+    return this._feed as Feed
   }
 
   get permissions (): Permissions {
@@ -128,7 +153,12 @@ export class Member {
     return responses
   }
 
-  private now (): Timestamp {
+  async close (): Promise<void> {
+    // TODO: Should we clear resources here?
+    await this.syncState.close()
+  }
+
+  now (): Timestamp {
     return this.syncState.permissions.clock.now()
   }
 }

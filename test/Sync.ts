@@ -16,7 +16,7 @@ test('Able to sync a single feed', async (t) => {
 
   t.pass('Able to create')
 
-  sync.addFeed(feed)
+  await sync.addFeed(feed)
 
   t.pass('Able to add feed')
 

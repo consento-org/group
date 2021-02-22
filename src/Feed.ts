@@ -8,6 +8,13 @@ import {
 } from './FeedItem'
 import { randomBytes } from 'crypto'
 import { Timestamp } from '@consento/hlc'
+import { Sync } from './Sync'
+
+export type FeedLoader = (id: ID) => Promise<Feed>
+
+export async function defaultFeedLoader (id: ID): Promise<Feed> {
+  return new Feed(id)
+}
 
 export class Feed {
   readonly items = new Array<FeedItem>()
@@ -20,10 +27,14 @@ export class Feed {
   }
 
   // Return value of `true` means stuff got synced
-  async sync (other: Feed): Promise<boolean> {
+  async sync (other: Sync): Promise<boolean> {
     // TODO: detect potential fork in timestamps
-    if (other.length > this.length) {
-      this.items.push(...other.items.slice(this.length))
+    if (!await other.hasFeed(this.id)) return false
+
+    const otherFeed = await other.getFeed(this.id)
+
+    if (otherFeed.length > this.length) {
+      this.items.push(...otherFeed.items.slice(this.length))
       return true
     }
 
@@ -95,5 +106,9 @@ export class Feed {
     }
     await this.append(res)
     return res
+  }
+
+  async close (): Promise<void> {
+    // Nothing to do here
   }
 }

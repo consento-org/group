@@ -12,3 +12,5 @@ export default function testPromise (text: string, cb: testCB): void {
     })
   })
 }
+
+testPromise.skip = (text: string, cb: testCB): void => {}

@@ -1,9 +1,9 @@
-import SDK, {Hypercore} from 'hyper-sdk'
+import SDK, { Hypercore } from 'hyper-sdk'
 import HLC from '@consento/hlc'
-import test from './testPromise'
+import test from '../testPromise'
 
-import { HypercoreFeed } from '../src/HypercoreFeed'
-import { FeedItem } from '../src/FeedItem'
+import { HypercoreFeed } from '../../src/hyper/Feed'
+import { FeedItem } from '../../src/FeedItem'
 
 const CLOCK = new HLC()
 
