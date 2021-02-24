@@ -737,7 +737,7 @@ core-util-is@~1.0.0:
   resolved "https://registry.yarnpkg.com/core-util-is/-/core-util-is-1.0.2.tgz#b5fd54220aa2bc5ab57aab7140c940754503c1a7"
   integrity sha1-tf1UIgqivFq1eqtxQMlAdUUDwac=
 
-corestore@^5.3.2, corestore@^5.8.1:
+corestore@^5.3.2, corestore@^5.8.2:
   version "5.8.2"
   resolved "https://registry.yarnpkg.com/corestore/-/corestore-5.8.2.tgz#bae8f7228db4fb0bf7417d57af60b6ac08a440af"
   integrity sha512-8OJyqGo1m3PyVvQtUoVcKYz4m4QoBAJE/2rNMJ8SD/U03NGD1z1cYep/n/32I0f3IbujYP5+4lIfBMIDkasB2w==
@@ -1657,43 +1657,23 @@ husky@^4.3.8:
     slash "^3.0.0"
     which-pm-runs "^1.0.0"
 
-hyper-sdk@^3.0.3:
-  version "3.0.3"
-  resolved "https://registry.yarnpkg.com/hyper-sdk/-/hyper-sdk-3.0.3.tgz#bb103417cd2c25315e6929cf47c57b1515603fb8"
-  integrity sha512-Y8WeY3okCKw2Apf3kHGvJjz4+9FlNjWQxmetu4weCohVkxuyb1ySRFdM3EeuFe9zrG1MLQfuId8S9p3eqrD33Q==
+hyper-sdk@^3.0.7:
+  version "3.0.7"
+  resolved "https://registry.yarnpkg.com/hyper-sdk/-/hyper-sdk-3.0.7.tgz#10f563c2e32b52fd792e6fcdb7a59e8d7b963ef1"
+  integrity sha512-yvf/bI6X6/+r0GIoi9OZ8ZW8P4O/X1j7cNSiIsuoWY7vZAsTId8qvhu+Yh1afZUDe90mcuWhYLr6+kBLAVFdGg==
   dependencies:
     "@corestore/networker" "^1.0.4"
     "@geut/hypercore-promise" "^2.1.1"
     "@geut/hyperdrive-promise" "^3.1.0"
     "@hyperspace/client" "^1.12.0"
-    corestore "^5.8.1"
+    corestore "^5.8.2"
     dat-dns "^4.0.0"
     dat-encoding "^5.0.1"
-    hypercore "^9.6.0"
-    hypercore-crypto "^2.1.1"
+    hypercore "^9.8.0"
+    hypercore-crypto "^2.2.0"
     hypercore-protocol "^8.0.7"
-    hyperdrive "^10.18.0"
-    hyperswarm "^2.15.2"
-    hyperswarm-web "^2.1.1"
-    random-access-application "^1.0.0"
-    random-access-memory "^3.1.1"
-
-hyper-sdk@datproject/sdk#typescript-definition:
-  version "3.0.4"
-  resolved "https://codeload.github.com/datproject/sdk/tar.gz/2ea4273a5d9ff49bb8c385eac056efd325f86c27"
-  dependencies:
-    "@corestore/networker" "^1.0.4"
-    "@geut/hypercore-promise" "^2.1.1"
-    "@geut/hyperdrive-promise" "^3.1.0"
-    "@hyperspace/client" "^1.12.0"
-    corestore "^5.8.1"
-    dat-dns "^4.0.0"
-    dat-encoding "^5.0.1"
-    hypercore "^9.6.0"
-    hypercore-crypto "^2.1.1"
-    hypercore-protocol "^8.0.7"
-    hyperdrive "^10.18.0"
-    hyperswarm "^2.15.2"
+    hyperdrive "^10.20.0"
+    hyperswarm "^2.15.3"
     hyperswarm-web "^2.1.1"
     random-access-application "^1.0.0"
     random-access-memory "^3.1.1"
@@ -1710,7 +1690,7 @@ hypercore-cache@^1.0.1:
   resolved "https://registry.yarnpkg.com/hypercore-cache/-/hypercore-cache-1.0.2.tgz#f170a5fda597437533e1563f39dd60dbbd56056d"
   integrity sha512-AJ/q7y6EOrXnOH/4+DVcfDygsh1ZXMRGvNc67GBNqwCt22oSCOWhRI6EJ+3HEJciM9M2oSm1WX3qg6kgRhT/Gw==
 
-hypercore-crypto@^2.0.0, hypercore-crypto@^2.0.1, hypercore-crypto@^2.1.0, hypercore-crypto@^2.1.1:
+hypercore-crypto@^2.0.0, hypercore-crypto@^2.0.1, hypercore-crypto@^2.1.0, hypercore-crypto@^2.2.0:
   version "2.2.0"
   resolved "https://registry.yarnpkg.com/hypercore-crypto/-/hypercore-crypto-2.2.0.tgz#2789cd83f31469582ee4702d0767462c8a4617ed"
   integrity sha512-YawYfsZl0RfKByNwir3ToNeGfKL4KVgEEQ/E/ZVLvYby+ayQ9wmNtqZlyW63YY9vdZ1d0i8WuYZnHb3H3z8qOQ==
@@ -1749,10 +1729,40 @@ hypercore-streams@^1.0.0, hypercore-streams@^1.0.1:
   dependencies:
     streamx "^2.6.0"
 
-hypercore@^9.0.0, hypercore@^9.4.1, hypercore@^9.6.0:
+hypercore@^9.0.0, hypercore@^9.4.1:
   version "9.7.5"
   resolved "https://registry.yarnpkg.com/hypercore/-/hypercore-9.7.5.tgz#aaaebaf34f8becbaa2d2d2df652834f1ee02a693"
   integrity sha512-88pfThOxlyk/xBqewTz6WjjSwoI+P+RA79y7jLr9OwwobeBQ0r2GQNawHaA6DGa9rPyJxZkREeP9yCF602KfCw==
+  dependencies:
+    abstract-extension "^3.0.1"
+    atomic-batcher "^1.0.2"
+    bitfield-rle "^2.2.1"
+    codecs "^2.0.0"
+    fast-bitfield "^1.2.2"
+    flat-tree "^1.6.0"
+    hypercore-cache "^1.0.1"
+    hypercore-crypto "^2.0.0"
+    hypercore-default-storage "^1.0.2"
+    hypercore-protocol "^8.0.5"
+    hypercore-streams "^1.0.1"
+    inherits "^2.0.3"
+    inspect-custom-symbol "^1.1.0"
+    last-one-wins "^1.0.4"
+    memory-pager "^1.0.2"
+    merkle-tree-stream "^4.0.0"
+    nanoguard "^1.2.0"
+    nanoresource "^1.3.0"
+    pretty-hash "^1.0.1"
+    sparse-bitfield "^3.0.0"
+    timeout-refresh "^1.0.3"
+    uint64be "^2.0.1"
+    unordered-array-remove "^1.0.2"
+    unordered-set "^2.0.0"
+
+hypercore@^9.8.0:
+  version "9.8.0"
+  resolved "https://registry.yarnpkg.com/hypercore/-/hypercore-9.8.0.tgz#0b9759e757a2567268288a3a0f7cc89329df37a0"
+  integrity sha512-NubuS53EyVivIhL1IDUEMo49p4HvEGKI0i/2UfoAqOn22I/be/8PkOCo/qT4dhcMDTDlOJa0YfFutTlrgYMxng==
   dependencies:
     abstract-extension "^3.0.1"
     atomic-batcher "^1.0.2"
@@ -1786,7 +1796,7 @@ hyperdrive-schemas@^2.0.0:
   dependencies:
     protocol-buffers-encodings "^1.1.0"
 
-hyperdrive@^10.17.0, hyperdrive@^10.18.0:
+hyperdrive@^10.17.0, hyperdrive@^10.20.0:
   version "10.20.0"
   resolved "https://registry.yarnpkg.com/hyperdrive/-/hyperdrive-10.20.0.tgz#27e9a019db4e53febc949dd988fdd00d05ee055e"
   integrity sha512-ejikKQc9L8qUzmmkGe2dk/FGzisY0RTtE1Jw4WfWWXGTun9t/yZ/sV4JfamNBJRd3C0BWV6ZQYeI+1xQDuK3WQ==
@@ -1841,7 +1851,7 @@ hyperswarm-web@^2.1.1:
     send "^0.17.1"
     websocket-stream "^5.5.2"
 
-hyperswarm@^2.14.1, hyperswarm@^2.15.2:
+hyperswarm@^2.14.1, hyperswarm@^2.15.3:
   version "2.15.3"
   resolved "https://registry.yarnpkg.com/hyperswarm/-/hyperswarm-2.15.3.tgz#34395e0538fda4883d03f2565e2b529c12fb9d7a"
   integrity sha512-bESly7s6X7cLMWCn4dsAVE/ttNbbB13o6jku2B7fV2wIV/g7NVC/yF7S3NiknGlftKn/uLU3fhMmbOfdBvQ5IA==

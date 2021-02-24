@@ -26,17 +26,22 @@ export class Sync {
   // TODO: Account for remote Sync which doesn't have actual feeds for the hypercore use case
   async sync (other: Sync): Promise<boolean> {
     let hasSynced: boolean = false
+    let hasMore: boolean = false
     for (const member of this.knownMembers) {
       const localFeed = await this.getFeed(member)
       const feedSynced = await localFeed.sync(other)
       hasSynced = feedSynced || hasSynced
+      hasMore = hasMore || localFeed.hasMore()
     }
 
-    if (!hasSynced) return hasSynced
+    if (!hasSynced && !hasMore) {
+      return hasSynced
+    }
 
     const hasProcessed = await this.processFeeds()
 
     if (hasProcessed) await this.sync(other)
+
     return hasSynced || hasProcessed
   }
 

@@ -1,17 +1,15 @@
 
 import runMemberTest from './Member'
 
-/*
 import { Member, MemberOptions } from '../src/Member'
 
+import { HypercoreMember, HypercoreMemberOptions } from '../src/hyper/Member'
+
 async function createMember (options? : MemberOptions): Promise<Member> {
- return await Member.create(options)
+  return await Member.create(options)
 }
 
 runMemberTest(createMember)
-*/
-
-import { HypercoreMember, HypercoreMemberOptions } from '../src/hyper/Member'
 
 runMemberTest(createHypercoreMember, 'HypercoreMember')
 

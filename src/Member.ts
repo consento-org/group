@@ -150,6 +150,8 @@ export class Member {
       responses.push(res)
     }
 
+    await this.processFeeds()
+
     return responses
   }
 

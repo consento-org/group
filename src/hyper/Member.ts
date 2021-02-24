@@ -33,7 +33,8 @@ export class HypercoreMember extends Member {
     const loadFeed: FeedLoader = async (id: ID) => {
       if (getHypercore === undefined) throw new Error('Hypercore constructor not initialized')
       const core = getHypercore<FeedItem>(id, {
-        valueEncoding: 'json'
+        valueEncoding: 'json',
+        sparse: false
       })
 
       await core.ready()

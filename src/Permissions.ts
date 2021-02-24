@@ -114,7 +114,8 @@ export class Permissions {
         throw new Error('Cant accept own request.')
       }
       const signatures = this.addSignature(response)
-      if (signatures >= this.getRequiredSignatures(openRequest)) {
+      const required = this.getRequiredSignatures(openRequest)
+      if (signatures >= required) {
         this.finishRequest(openRequest)
       }
     }
@@ -145,7 +146,7 @@ export class Permissions {
   private addSignature (response: Response): number {
     const signatures = this.signatures.get(response.id)
     if (signatures === undefined) {
-      this.signatures.set(response.id, new Set(response.from))
+      this.signatures.set(response.id, new Set([response.from]))
       return 1
     }
     if (signatures.has(response.from)) {
