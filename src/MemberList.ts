@@ -11,12 +11,10 @@ export class MemberList {
 
   add (member: ID, timestamp: Timestamp): void {
     this._state.set(timestamp, member, 'added')
-    this.recalculate()
   }
 
   remove (member: ID, timestamp: Timestamp): void {
     this._state.set(timestamp, member, 'removed')
-    this.recalculate()
   }
 
   added (at? : Timestamp): ReadonlySet<ID> {

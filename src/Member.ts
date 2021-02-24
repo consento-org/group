@@ -7,34 +7,68 @@ import { Permissions } from './Permissions'
 import { Sync } from './Sync'
 import { randomBytes } from 'crypto'
 import { Timestamp } from '@consento/hlc'
-import { Feed } from './Feed'
+import { Feed, FeedLoader, defaultFeedLoader } from './Feed'
 
 export interface MemberOptions {
   id?: ID
   initiator?: ID
+  loadFeed?: FeedLoader
 }
 
 export class Member {
-  readonly feed: Feed
-  readonly syncState: Sync
-  readonly id: ID
-  readonly initiator: ID
+  _feed?: Feed
+  _syncState?: Sync
+  readonly _id: ID
+  initiator: ID
+  private readonly loadFeed: FeedLoader
+
+  static async create (opts?: MemberOptions): Promise<Member> {
+    const member = new Member(opts)
+    await member.init()
+
+    return member
+  }
 
   constructor ({
     id = randomBytes(8).toString('hex'),
-    initiator = id
+    initiator = id,
+    loadFeed = defaultFeedLoader
   }: MemberOptions = {}) {
-    this.id = id
+    this._id = id
     this.initiator = initiator
-    this.feed = new Feed(id)
+    this.loadFeed = loadFeed
+  }
 
-    this.syncState = new Sync(initiator)
+  isInitiator (): boolean {
+    return this.id === this.initiator
+  }
 
-    this.syncState.addFeed(this.feed)
+  async init (): Promise<void> {
+    this._feed = await this.loadFeed(this._id)
 
-    if (id === initiator) {
-      this.requestAdd(this.id)
+    // Workaround for when feeds give you a new ID based on your given ID
+    // TODO: Clean this up?
+    if (this.initiator === this._id) this.initiator = this.id
+
+    this._syncState = new Sync(this.initiator, this.loadFeed)
+
+    await this.syncState.addFeed(this.feed)
+
+    if (this.isInitiator()) {
+      await this.requestAdd(this.id)
     }
+  }
+
+  get syncState (): Sync {
+    return this._syncState as Sync
+  }
+
+  get id (): ID {
+    return this.feed.id
+  }
+
+  get feed (): Feed {
+    return this._feed as Feed
   }
 
   get permissions (): Permissions {
@@ -45,52 +79,52 @@ export class Member {
     return this.syncState.knownMembers
   }
 
-  sync (other: Member): void {
-    this.syncState.sync(other.syncState)
+  async sync (other: Member): Promise<void> {
+    await this.syncState.sync(other.syncState)
   }
 
-  processFeeds (): void {
-    this.syncState.processFeeds()
+  async processFeeds (): Promise<void> {
+    await this.syncState.processFeeds()
   }
 
-  requestAdd (who: ID): Request {
-    const req = this.feed.addRequest({
+  async requestAdd (who: ID): Promise<Request> {
+    const req = await this.feed.addRequest({
       operation: 'add',
       who,
       timestamp: this.now()
     })
-    this.processFeeds()
+    await this.processFeeds()
     return req
   }
 
-  requestRemove (who: ID): Request {
-    const req = this.feed.addRequest({
+  async requestRemove (who: ID): Promise<Request> {
+    const req = await this.feed.addRequest({
       operation: 'remove',
       who,
       timestamp: this.now()
     })
-    this.processFeeds()
+    await this.processFeeds()
 
     return req
   }
 
-  acceptRequest ({ id }: Request): Response {
+  async acceptRequest ({ id }: Request): Promise<Response> {
     const res = this.feed.addResponse({
       id,
       response: 'accept',
       timestamp: this.now()
     })
-    this.processFeeds()
-    return res
+    await this.processFeeds()
+    return await res
   }
 
-  denyRequest ({ id }: Request): Response {
-    const res = this.feed.addResponse({
+  async denyRequest ({ id }: Request): Promise<Response> {
+    const res = await this.feed.addResponse({
       id,
       response: 'deny',
       timestamp: this.now()
     })
-    this.processFeeds()
+    await this.processFeeds()
     return res
   }
 
@@ -107,15 +141,26 @@ export class Member {
     })
   }
 
-  signUnsigned (): Response[] {
+  async signUnsigned (): Promise<Response[]> {
     const toSign = this.getUnsignedRequests()
+    const responses = []
 
-    const responses = toSign.map((req) => this.acceptRequest(req))
+    for (const req of toSign) {
+      const res = await this.acceptRequest(req)
+      responses.push(res)
+    }
+
+    await this.processFeeds()
 
     return responses
   }
 
-  private now (): Timestamp {
+  async close (): Promise<void> {
+    // TODO: Should we clear resources here?
+    await this.syncState.close()
+  }
+
+  now (): Timestamp {
     return this.syncState.permissions.clock.now()
   }
 }
