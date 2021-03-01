@@ -9,53 +9,80 @@ import { randomBytes } from 'crypto'
 import { Timestamp } from '@consento/hlc'
 import { Feed, FeedLoader, defaultFeedLoader } from './Feed'
 
-export interface MemberOptions {
-  id?: ID
-  initiator?: ID
+export interface GroupOptions {
   loadFeed?: FeedLoader
+  id?: ID
 }
 
-export class Member {
+export class Group {
   _feed?: Feed
   _syncState?: Sync
-  readonly _id: ID
-  initiator: ID
+  _id?: ID
   private readonly loadFeed: FeedLoader
 
-  static async create (opts?: MemberOptions): Promise<Member> {
-    const member = new Member(opts)
-    await member.init()
+  static async load (options: GroupOptions = {}): Promise<Group> {
+    const group = new Group(options)
 
-    return member
+    const { id = randomBytes(8).toString('hex') } = options
+
+    await group.init(id)
+
+    return group
+  }
+
+  static async create (options: GroupOptions = {}): Promise<Group> {
+    const group = new Group(options)
+
+    const { id } = options
+
+    await group.createOwnFeed(id)
+
+    const finalID = group.feed.id
+
+    await group.init(finalID)
+
+    return group
   }
 
   constructor ({
-    id = randomBytes(8).toString('hex'),
-    initiator = id,
     loadFeed = defaultFeedLoader
-  }: MemberOptions = {}) {
-    this._id = id
-    this.initiator = initiator
+  }: GroupOptions = {}) {
     this.loadFeed = loadFeed
   }
 
-  isInitiator (): boolean {
-    return this.id === this.initiator
+  isMember (): boolean {
+    return this.hasFeed() && this.members.includes(this.feed.id)
   }
 
-  async init (): Promise<void> {
-    this._feed = await this.loadFeed(this._id)
+  hasFeed (): boolean {
+    return this._feed !== undefined
+  }
 
-    // Workaround for when feeds give you a new ID based on your given ID
-    // TODO: Clean this up?
-    if (this.initiator === this._id) this.initiator = this.id
+  isInitiator (): boolean {
+    if (!this.hasFeed()) return false
+    return this.feed.id === this.id
+  }
 
-    this._syncState = new Sync(this.initiator, this.loadFeed)
+  async createOwnFeed (id?: ID): Promise<void> {
+    const finalID = id ?? randomBytes(8).toString('hex')
+    this._feed = await this.loadFeed(finalID)
 
-    await this.syncState.addFeed(this.feed)
+    if (this._syncState !== undefined) {
+      await this.syncState.addFeed(this.feed)
+    }
+  }
+
+  async init (id: ID): Promise<void> {
+    this._id = id
+
+    this._syncState = new Sync(this.id, this.loadFeed)
+
+    if (this.hasFeed()) {
+      await this.syncState.addFeed(this.feed)
+    }
 
     if (this.isInitiator()) {
-      await this.requestAdd(this.id)
+      await this.requestAdd(this.feed.id)
     }
   }
 
@@ -63,8 +90,13 @@ export class Member {
     return this._syncState as Sync
   }
 
-  get id (): ID {
+  get ownID (): ID {
+    if (!this.hasFeed()) throw new Error('Own Feed Not Initialized')
     return this.feed.id
+  }
+
+  get id (): ID {
+    return this._id as ID
   }
 
   get feed (): Feed {
@@ -75,11 +107,11 @@ export class Member {
     return this.syncState.permissions
   }
 
-  get knownMembers (): ID[] {
+  get members (): ID[] {
     return this.syncState.knownMembers
   }
 
-  async sync (other: Member): Promise<void> {
+  async sync (other: Group): Promise<void> {
     await this.syncState.sync(other.syncState)
   }
 
@@ -88,6 +120,7 @@ export class Member {
   }
 
   async requestAdd (who: ID): Promise<Request> {
+    if (!this.isMember()) throw new Error('Not a member of the group')
     const req = await this.feed.addRequest({
       operation: 'add',
       who,
@@ -98,6 +131,7 @@ export class Member {
   }
 
   async requestRemove (who: ID): Promise<Request> {
+    if (!this.isMember()) throw new Error('Not a member of the group')
     const req = await this.feed.addRequest({
       operation: 'remove',
       who,
@@ -109,6 +143,7 @@ export class Member {
   }
 
   async acceptRequest ({ id }: Request): Promise<Response> {
+    if (!this.isMember()) throw new Error('Not a member of the group')
     const res = this.feed.addResponse({
       id,
       response: 'accept',
@@ -119,6 +154,7 @@ export class Member {
   }
 
   async denyRequest ({ id }: Request): Promise<Response> {
+    if (!this.isMember()) throw new Error('Not a member of the group')
     const res = await this.feed.addResponse({
       id,
       response: 'deny',
@@ -142,6 +178,7 @@ export class Member {
   }
 
   async signUnsigned (): Promise<Response[]> {
+    if (!this.isMember()) throw new Error('Not a member of the group')
     const toSign = this.getUnsignedRequests()
     const responses = []
 

@@ -1,20 +1,10 @@
 
-import runMemberTest from './Member'
+import runGroupTest from './Group'
 
-import { Member, MemberOptions } from '../src/Member'
+import { Group, GroupOptions } from '../src/Group'
 
-import { HypercoreMember, HypercoreMemberOptions } from '../src/hyper/Member'
+import { HypercoreGroup, HypercoreGroupOptions } from '../src/hyper/Group'
 
-async function createMember (options? : MemberOptions): Promise<Member> {
-  return await Member.create(options)
-}
+runGroupTest(Group)
 
-runMemberTest(createMember)
-
-runMemberTest(createHypercoreMember, 'HypercoreMember')
-
-async function createHypercoreMember (options: HypercoreMemberOptions = {}): Promise<HypercoreMember> {
-  const finalOptions = { ...options, persist: false }
-
-  return await HypercoreMember.create(finalOptions)
-}
+//runGroupTest(HypercoreGroup, 'HypercoreGroup')
