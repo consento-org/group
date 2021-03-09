@@ -159,28 +159,35 @@ export class Permissions {
   private finishRequest (request: Request): void {
     const timestamp = this.latestRequestTimestamp.get(request.id)
     if (timestamp === undefined) throw new Error('No request time found')
+
     const id = request.who
+
     if (request.operation === 'add') {
       this.members.add(id, timestamp)
     } else {
       this.members.remove(id, timestamp)
     }
+
     this.requests.set(request.id, 'finished')
     this.openRequests.delete(request.id)
     this.signatures.delete(request.id)
+
     const list = this.openRequestsByMember.get(request.from)
+
     if (list === undefined) {
       throw new Error('This may never occur')
     }
     if (list.shift() !== request) {
       throw new Error('This may also never occur')
     }
+
     const entry = list[0]
     if (entry === undefined) {
       this.openRequestsByMember.delete(request.from)
     } else {
       this.requests.set(entry.id, 'active')
     }
+
     this.latestRequestTimestamp.delete(request.id)
   }
 

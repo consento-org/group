@@ -8,7 +8,7 @@ export default function testPromise (text: string, cb: testCB): void {
     cb(t).then(() => {
       t.end()
     }).catch((e) => {
-      t.fail(e.stack)
+      t.end(e)
     })
   })
 }

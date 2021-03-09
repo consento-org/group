@@ -7,4 +7,4 @@ import { HypercoreGroup, HypercoreGroupOptions } from '../src/hyper/Group'
 
 runGroupTest(Group)
 
-//runGroupTest(HypercoreGroup, 'HypercoreGroup')
+runGroupTest(HypercoreGroup, 'HypercoreGroup')

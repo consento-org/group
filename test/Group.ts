@@ -9,7 +9,7 @@ const EXAMPLE_ID = `hyper://${new Array(64).fill('a').join('')}`
 export type CreateGroup = (options? : GroupOptions) => Promise<Group>
 
 export default function (GroupType: typeof Group, label: string = 'Group'): void {
-  test.skip(`${label}: Able to initialize a member`, async (t) => {
+  test(`${label}: Able to initialize a member`, async (t) => {
     const member = await createGroup()
     try {
       t.pass('Able to process feeds with zero data')
@@ -21,7 +21,7 @@ export default function (GroupType: typeof Group, label: string = 'Group'): void
     }
   })
 
-  test.skip(`${label}: Able to add a member by ID`, async (t) => {
+  test(`${label}: Able to add a member by ID`, async (t) => {
     const member = await createGroup()
     try {
       const req = await member.requestAdd(EXAMPLE_ID)
@@ -46,7 +46,7 @@ export default function (GroupType: typeof Group, label: string = 'Group'): void
     }
   })
 
-  test.skip(`${label}: Able to add a member by ID and sync`, async (t) => {
+  test(`${label}: Able to add a member by ID and sync`, async (t) => {
     const member = await createGroup()
     const other = await createGroup({ initiator: member.id })
     try {
@@ -97,7 +97,7 @@ export default function (GroupType: typeof Group, label: string = 'Group'): void
       t.deepEqual(f.members, c.members, 'Outside member resovled to same ID')
 
       function currentIDs (): ID[] {
-        return currentGroups.map(({ id }) => id)
+        return currentGroups.map(({ ownID }) => ownID)
       }
 
       async function authorizeGroup (member: Group, initiator?: Group): Promise<void> {
@@ -105,6 +105,7 @@ export default function (GroupType: typeof Group, label: string = 'Group'): void
         const others = currentGroups.filter(other => other !== initiator)
 
         await initiator.requestAdd(member.ownID)
+        t.pass(`${initiator.ownID} requested add for ${member.ownID}`)
 
         // Give some time for the network to update
         await delay(200)
@@ -136,7 +137,7 @@ export default function (GroupType: typeof Group, label: string = 'Group'): void
 
         const exists = previous.members.includes(member.ownID)
 
-        t.ok(exists, `Group ${member.ownID} got added`)
+        t.ok(exists, `Member ${member.ownID} got added`)
 
         currentGroups.push(member)
 
@@ -155,10 +156,10 @@ export default function (GroupType: typeof Group, label: string = 'Group'): void
     }
   })
 
-  test.skip(`${label}: Able to initialize a bunch of members`, async (t) => {
+  test(`${label}: Able to initialize a bunch of members`, async (t) => {
     const members = await initializeGroups(5, { knowEachOther: true })
     try {
-      const memberIds = members.map(({ id }) => id)
+      const memberIds = members.map(({ ownID }) => ownID)
 
       for (const member of members) {
         t.deepEqual(member.members, memberIds, `${member.ownID} sees all members`)
@@ -168,7 +169,7 @@ export default function (GroupType: typeof Group, label: string = 'Group'): void
     }
   })
 
-  test.skip(`${label}: Process request by syncing one peer at a time`, async (t) => {
+  test(`${label}: Process request by syncing one peer at a time`, async (t) => {
     const members = await initializeGroups(5, { knowEachOther: true })
     try {
       let previous = members[0]
@@ -194,7 +195,7 @@ export default function (GroupType: typeof Group, label: string = 'Group'): void
     }
   })
 
-  test.skip(`${label}: Only two members remove each other`, async (t) => {
+  test(`${label}: Only two members remove each other`, async (t) => {
     const [a, b] = await initializeGroups(2, { knowEachOther: true })
     try {
       await a.requestRemove(b.ownID)
@@ -224,7 +225,7 @@ export default function (GroupType: typeof Group, label: string = 'Group'): void
     }
   })
 
-  test.skip(`${label}: Multiple requests get treated one at a time`, async (t) => {
+  test(`${label}: Multiple requests get treated one at a time`, async (t) => {
     const [a, b] = await initializeGroups(2, { knowEachOther: true })
 
     try {
@@ -250,9 +251,8 @@ export default function (GroupType: typeof Group, label: string = 'Group'): void
   test.skip(`${label}: Two members do an add at once`, async (t) => {
     const [a, b, c, d, e] = await initializeGroups(5, { knowEachOther: true })
 
-    const f = await createGroup({ id: 'f', initiator: a.ownID })
-    const g = await createGroup({ id: 'g', initiator: a.ownID })
-
+    const f = await createGroup({ id: 'f', initiator: a.id })
+    const g = await createGroup({ id: 'g', initiator: a.id })
     try {
     // F and G should see all known members thus far
       await sync(a, f)
@@ -410,7 +410,9 @@ export default function (GroupType: typeof Group, label: string = 'Group'): void
 
   async function createGroup ({ id, initiator }: {id?: ID, initiator?: ID} = {}): Promise<Group> {
     if (initiator !== undefined) {
-      return await GroupType.load({ id: initiator })
+      const group = await GroupType.load({ id: initiator })
+      if(id !== undefined) group.createOwnFeed(id)
+      return group
     } else {
       return await GroupType.create({ id })
     }
