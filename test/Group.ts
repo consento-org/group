@@ -411,7 +411,7 @@ export default function (GroupType: typeof Group, label: string = 'Group'): void
   async function createGroup ({ id, initiator }: {id?: ID, initiator?: ID} = {}): Promise<Group> {
     if (initiator !== undefined) {
       const group = await GroupType.load({ id: initiator })
-      if(id !== undefined) group.createOwnFeed(id)
+      if (id !== undefined) await group.createOwnFeed(id)
       return group
     } else {
       return await GroupType.create({ id })
