@@ -10,7 +10,7 @@
     "coverage": "c8 --reporter=html --reporter=lcov npm run test",
     "build": "tsc",
     "protobuf": "protocol-buffers feeditem.proto -o src/feeditem.js",
-    "postinstall": "husky-run install"
+    "postinstall": "husky-run install || true"
   },
   "eslintConfig": {
     "extends": "standard-with-typescript",
