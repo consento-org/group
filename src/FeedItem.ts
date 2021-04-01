@@ -1,3 +1,4 @@
+import { Buffer } from 'buffer'
 import HLC, { Timestamp } from '@consento/hlc'
 
 import { FeedItem as FeedItemCodec } from './Protobufs'
