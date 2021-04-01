@@ -2743,6 +2743,13 @@ promise-defer@^1.0.0:
   resolved "https://registry.yarnpkg.com/promise-defer/-/promise-defer-1.0.0.tgz#25a8093f19bab40c62a8e464c97d04fe4cdc0a24"
   integrity sha1-JagJPxm6tAxiqORkyX0E/kzcCiQ=
 
+protocol-buffers-dts@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/protocol-buffers-dts/-/protocol-buffers-dts-1.0.0.tgz#ce13e3c1185e3bbc378b754471a93d44cb05d684"
+  integrity sha512-/MREt2xq5rQVI6FNdzREKnO0LiHkafAjN302IZKOOUaoFVSWTV8+5pKfLqqeLIM9698CnMjCxhmiVJFwiNrt/g==
+  dependencies:
+    protocol-buffers-schema "^3.5.1"
+
 protocol-buffers-encodings@^1.1.0:
   version "1.1.1"
   resolved "https://registry.yarnpkg.com/protocol-buffers-encodings/-/protocol-buffers-encodings-1.1.1.tgz#f1e4a386711823137330171d2c82b49d062e75d3"

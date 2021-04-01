@@ -7,11 +7,12 @@ import { Permissions } from './Permissions'
 import { Sync } from './Sync'
 import { randomBytes } from 'crypto'
 import { Timestamp } from '@consento/hlc'
-import { Feed, FeedLoader, defaultFeedLoader } from './Feed'
+import { Feed, FeedLoader, defaultFeedLoader, Metadata } from './Feed'
 
 export interface GroupOptions {
   loadFeed?: FeedLoader
   id?: ID
+  metadata?: Metadata
 }
 
 export class Group {
@@ -33,9 +34,9 @@ export class Group {
   static async create (options: GroupOptions = {}): Promise<Group> {
     const group = new Group(options)
 
-    const { id } = options
+    const { id, metadata } = options
 
-    await group.createOwnFeed(id)
+    await group.createOwnFeed(id, metadata)
 
     const finalID = group.feed.id
 
@@ -63,9 +64,13 @@ export class Group {
     return this.feed.id === this.id
   }
 
-  async createOwnFeed (id?: ID): Promise<void> {
+  async createOwnFeed (id?: ID, metadata? : Metadata): Promise<void> {
     const finalID = id ?? randomBytes(8).toString('hex')
     this._feed = await this.loadFeed(finalID)
+
+    if ((metadata !== undefined) && (this.feed.length === 0)) {
+      await this.feed.writeMetadata(metadata)
+    }
 
     if (this._syncState !== undefined) {
       await this.syncState.addFeed(this.feed)

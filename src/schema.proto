@@ -1,0 +1,34 @@
+message Header {
+  message Metadata {
+    optional bytes contentFeed = 1;
+    optional bytes userData = 2;
+  }
+
+  required string protocol = 1;
+  optional Metadata metadata = 2;
+}
+
+message FeedItem {
+  enum FeedItemType {
+    REQUEST = 1;
+    RESPONSE = 2;
+  }
+  enum RequestOperation {
+    ADD = 1;
+    REMOVE = 2;
+  }
+  enum ResponseType {
+    ACCEPT = 1;
+    DENY = 2;
+    CANCEL = 3;
+    CONFLICT = 4;
+  }
+
+  FeedItemType type = 0;
+  string id = 1;
+  string from = 2;
+  bytes timestamp = 3;
+  optional string who = 4;
+  optional RequestOperation operation = 5;
+  optional ResponseType response = 6;
+}
