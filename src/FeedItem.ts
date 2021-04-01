@@ -145,7 +145,7 @@ export function encode (item: FeedItem): Buffer {
       case 'conflict':
         response = ResponseTypeCodec.CONFLICT
         break
-      default: throw new TypeError(`Invalid response value ${_response}`)
+      default: throw new TypeError(`Invalid response value ${String(_response)}`)
     }
 
     return FeedItemCodec.encode({
