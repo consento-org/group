@@ -108,3 +108,7 @@ dist
 *.d.ts
 *.js.map
 dist/
+
+# lock files
+package-lock.json
+yarn.lock
