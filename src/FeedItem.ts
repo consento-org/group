@@ -155,5 +155,7 @@ export function encode (item: FeedItem): Buffer {
       timestamp,
       response
     })
+  } else {
+    throw new TypeError(`Unexpected feed item ${String(item)}`)
   }
 }
