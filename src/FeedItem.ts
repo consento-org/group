@@ -29,7 +29,7 @@ const {
   ResponseType: ResponseTypeCodec
 } = FeedItemCodec
 
-type ResponseTypeValues = ResponseTypeCodec.ACCEPT | ResponseTypeCodec.DENY | ResponseTypeCodec.CANCEL | ResponseTypeCodec.CONFLICT
+type ResponseTypeValues = typeof ResponseTypeCodec.ACCEPT | typeof ResponseTypeCodec.DENY | typeof ResponseTypeCodec.CANCEL | typeof ResponseTypeCodec.CONFLICT
 
 export interface Request {
   // Used to differentiate between req/res
