@@ -119,7 +119,7 @@ export function encode (item: FeedItem): Buffer {
 
   if (isRequest(item)) {
     const { operation: _operation, who } = item
-    const operation = RequestOperationCodec[_operation.toUpperCase()]
+    const operation = RequestOperationCodec[_operation.toUpperCase() as keyof typeof RequestOperationCodec]
 
     return FeedItemCodec.encode({
       type: FeedItemTypeCodec.REQUEST,
