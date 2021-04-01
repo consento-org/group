@@ -17,7 +17,7 @@ export class MemberList {
     this._state.set(timestamp, member, 'removed')
   }
 
-  added (at? : Timestamp): ReadonlySet<ID> {
+  added (at?: Timestamp): ReadonlySet<ID> {
     if (at === undefined) {
       return this._state.byState('added')
     } else {
@@ -25,7 +25,7 @@ export class MemberList {
     }
   }
 
-  removed (at? : Timestamp): ReadonlySet<ID> {
+  removed (at?: Timestamp): ReadonlySet<ID> {
     if (at === undefined) {
       return this._state.byState('removed')
     } else {

@@ -64,7 +64,7 @@ export class Group {
     return this.feed.id === this.id
   }
 
-  async createOwnFeed (id?: ID, metadata? : Metadata): Promise<void> {
+  async createOwnFeed (id?: ID, metadata?: Metadata): Promise<void> {
     const finalID = id ?? randomBytes(8).toString('hex')
     this._feed = await this.loadFeed(finalID)
 

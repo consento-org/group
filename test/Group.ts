@@ -6,7 +6,7 @@ import { ID } from '../src/FeedItem'
 
 const EXAMPLE_ID = `hyper://${new Array(64).fill('a').join('')}`
 
-export type CreateGroup = (options? : GroupOptions) => Promise<Group>
+export type CreateGroup = (options?: GroupOptions) => Promise<Group>
 
 export default function (GroupType: typeof Group, label: string = 'Group'): void {
   test(`${label}: Able to initialize a member`, async (t) => {
