@@ -21,7 +21,7 @@ export const REQUEST_TYPE = 'request' as RequestIdentifier
 export const RESPONSE_TYPE = 'response' as ResponseIdentifier
 
 const ResponseMap: ResponseType[] = [
-  'accept', 'deny', 'cancel', 'conflict'
+  'conflict', 'accept', 'deny', 'cancel', 'conflict'
 ]
 
 const {
@@ -29,8 +29,6 @@ const {
   RequestOperation: RequestOperationCodec,
   ResponseType: ResponseTypeCodec
 } = FeedItemCodec
-
-type ResponseTypeValues = typeof ResponseTypeCodec.ACCEPT | typeof ResponseTypeCodec.DENY | typeof ResponseTypeCodec.CANCEL | typeof ResponseTypeCodec.CONFLICT
 
 export interface Request {
   // Used to differentiate between req/res
@@ -131,22 +129,7 @@ export function encode (item: FeedItem): Buffer {
     })
   } else if (isResponse(item)) {
     const { response: _response } = item
-    let response: ResponseTypeValues = ResponseTypeCodec.CONFLICT
-    switch (_response) {
-      case 'accept':
-        response = ResponseTypeCodec.ACCEPT
-        break
-      case 'deny':
-        response = ResponseTypeCodec.DENY
-        break
-      case 'cancel':
-        response = ResponseTypeCodec.CANCEL
-        break
-      case 'conflict':
-        response = ResponseTypeCodec.CONFLICT
-        break
-      default: throw new TypeError(`Invalid response value ${String(_response)}`)
-    }
+    const response = ResponseTypeCodec[_response.toUpperCase() as keyof typeof ResponseTypeCodec]
 
     return FeedItemCodec.encode({
       type: FeedItemTypeCodec.RESPONSE,
