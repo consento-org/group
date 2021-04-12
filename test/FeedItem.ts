@@ -2,14 +2,13 @@ import test from './testPromise'
 import HLC from '@consento/hlc'
 
 import {
-FeedItem,
- encode,
+  encode,
   decode,
-   Request,
-    Response,
-    isRequest,
-    isResponse
-     } from '../src/FeedItem'
+  Request,
+  Response,
+  isRequest,
+  isResponse
+} from '../src/FeedItem'
 
 const CLOCK = new HLC()
 
@@ -27,7 +26,7 @@ test('Encoding and Decoding Requests', async (t) => {
 
   const decoded = decode(encoded)
 
-  if(!isRequest(decoded)) throw new Error('Not a request')
+  if (!isRequest(decoded)) throw new Error('Not a request')
 
   t.equal(decoded.type, rawReq.type, 'type')
   t.equal(decoded.id, rawReq.id, 'id')
@@ -37,21 +36,20 @@ test('Encoding and Decoding Requests', async (t) => {
   t.equal(decoded.who, rawReq.who, 'who')
 })
 
-
 test('Encoding and Decoding Responses', async (t) => {
   const rawRes: Response = {
     type: 'response',
     id: 'id here',
     from: 'from here',
     timestamp: CLOCK.now(),
-    response: 'accept',
+    response: 'accept'
   }
 
   const encoded = encode(rawRes)
 
   const decoded = decode(encoded)
 
-  if(!isResponse(decoded)) throw new Error('Not a response')
+  if (!isResponse(decoded)) throw new Error('Not a response')
 
   t.equal(decoded.type, rawRes.type, 'type')
   t.equal(decoded.id, rawRes.id, 'id')
