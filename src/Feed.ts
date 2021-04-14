@@ -49,7 +49,8 @@ export class Feed {
   }
 
   // Return value of `true` means stuff got synced
-  async sync (other: Sync): Promise<boolean> {
+  async sync (other?: Sync): Promise<boolean> {
+    if (other === undefined) throw new Error('Sync state required')
     // TODO: detect potential fork in timestamps
     if (!await other.hasFeed(this.id)) return false
 

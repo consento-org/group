@@ -64,6 +64,14 @@ export class Group {
     return this.feed.id === this.id
   }
 
+  async getMetadataFor (id: ID): Promise<Metadata | undefined> {
+    const isLoaded = await this.syncState.hasFeed(id)
+    if (!isLoaded) throw new Error('Feed not loaded')
+    const feed = await this.syncState.getFeed(id)
+
+    return await feed.getMetadata()
+  }
+
   async createOwnFeed (id?: ID, metadata?: Metadata): Promise<void> {
     const finalID = id ?? randomBytes(8).toString('hex')
     this._feed = await this.loadFeed(finalID)
@@ -116,8 +124,8 @@ export class Group {
     return this.syncState.knownMembers
   }
 
-  async sync (other: Group): Promise<void> {
-    await this.syncState.sync(other.syncState)
+  async sync (other?: Group): Promise<void> {
+    await this.syncState.sync(other?.syncState)
   }
 
   async processFeeds (): Promise<void> {

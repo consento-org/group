@@ -24,7 +24,7 @@ export class Sync {
 
   // Return value of `true` means stuff got synced
   // TODO: Account for remote Sync which doesn't have actual feeds for the hypercore use case
-  async sync (other: Sync): Promise<boolean> {
+  async sync (other?: Sync): Promise<boolean> {
     let hasSynced: boolean = false
     let hasMore: boolean = false
     for (const member of this.knownMembers) {
