@@ -104,10 +104,12 @@ dist
 .tern-port
 
 # Ignore compiled TS files
-*.js
-*.d.ts
 *.js.map
 dist/
+
+# These are needed for the protobuf stuff
+#*.js
+#*.d.ts
 
 # lock files
 package-lock.json
